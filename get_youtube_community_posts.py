@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import json
 import arrow
+from datetime import datetime, UTC, timedelta
 
 #accepts a youtube channel handle
 #returns a list of their most recent community posts
@@ -28,7 +29,6 @@ def get_youtube_community_posts(handle):
                     break
 
         if posts_index is not None:
-            timestamp_handler = arrow.utcnow()
             post_data = page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][posts_index]['tabRenderer']['content'][
                 'sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
 
@@ -39,7 +39,7 @@ def get_youtube_community_posts(handle):
                         'post_text': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['contentText']['runs'][0]['text'],
                         'post_url': f"https://www.youtube.com/post/{p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId']}",
                         #'post_timestamp_friendly': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'],
-                        'post_timestamp': timestamp_handler.dehumanize(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'].replace('(edited)', '').replace('day ', 'days ').strip()).format()
+                        'post_timestamp': get_timestamp_from_post_time(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'])
                     }
 
                     attachments = []
@@ -76,3 +76,27 @@ def get_youtube_community_posts(handle):
                     posts.append(post)
 
     return posts
+
+def get_timestamp_from_post_time(time_raw):
+    time_clean = time_raw.replace('hour ', 'hours ')
+    time_clean = time_clean.replace('day ', 'days ')
+    time_clean = time_clean.replace('minute ', 'minutes ')
+    time_clean = time_clean.replace('week ', 'weeks ')
+    time_clean = time_clean.replace('month ', 'months ')
+    time_clean = time_clean.replace('second ', 'seconds ')
+    time_clean = time_clean.replace('year ', 'years ')
+    time_clean = time_clean.replace('(edited)', '')
+    time_clean = time_clean.strip()
+
+    timestamp_handler = arrow.utcnow()
+
+    try:
+        time_fixed = timestamp_handler.dehumanize(time_clean)
+    except ValueError as e:
+        print(f'Failed to humanize timestamp: {time_raw}, {time_clean}')
+        print(e)
+
+        #set an arbitrary time in the past to not cause issues
+        time_fixed = arrow.get(datetime.now(UTC) + timedelta(days=-100))
+
+    return time_fixed.format()
