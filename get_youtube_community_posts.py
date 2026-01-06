@@ -39,7 +39,7 @@ def get_youtube_community_posts(handle):
                         'post_text': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['contentText']['runs'][0]['text'],
                         'post_url': f"https://www.youtube.com/post/{p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId']}",
                         #'post_timestamp_friendly': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'],
-                        'post_timestamp': timestamp_handler.dehumanize(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'].replace('(edited)', '').strip()).format()
+                        'post_timestamp': timestamp_handler.dehumanize(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'].replace('(edited)', '').replace('day ', 'days ').strip()).format()
                     }
 
                     attachments = []
