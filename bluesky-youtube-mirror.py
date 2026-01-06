@@ -14,7 +14,7 @@ DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
 NAME_SUFFIX = ' (YouTube Mirror)'
 PROCESS_INTERVAL = 300
-PROFILE_UPDATE_INTERVAL = 3600
+PROFILE_UPDATE_INTERVAL = 10800
 
 def get_channel_details(youtube_api, channel_id):
     print(f'Loading details for channel [{channel_id}]...')
@@ -114,10 +114,6 @@ registry = RegistryFile()
 #load youtube api
 youtube_api = Api(api_key=YOUTUBE_API_KEY)
 
-#get channel information
-channel_details = get_channel_details(youtube_api, CHANNEL_ID)
-print(channel_details)
-
 #login to Bluesky
 session = registry.getValue('bluesky_session_string', None)
 bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session)
@@ -135,10 +131,15 @@ if not bsky.logged_in:
 #update session string
 registry.setValue('bluesky_session_string', bsky.session)
 
-#update profile
-update_profile(bsky, channel_details)
 initialized = registry.getValue('initialized', False)
 if not initialized:
+    # get channel information
+    channel_details = get_channel_details(youtube_api, CHANNEL_ID)
+    print(channel_details)
+
+    # update profile
+    update_profile(bsky, channel_details)
+
     generate_pinned_post(bsky, channel_details['url'], channel_details['name'])
     registry.setValue('initialized', True)
 
@@ -190,6 +191,7 @@ while True:
             if c['type'] == 'video':
                 link_embed = c['item']['url']
             else:
+                contents = c['item']['post_text']
                 link_embed = c['item']['post_url']
                 if c['item']['attachments'] is not None:
                     #either video link or image(s)
