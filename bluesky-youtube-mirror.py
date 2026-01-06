@@ -14,7 +14,8 @@ DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
 NAME_SUFFIX = ' (YouTube Mirror)'
 PROCESS_INTERVAL = 300
-PROFILE_UPDATE_INTERVAL = 10800
+PROFILE_UPDATE_INTERVAL = 86400
+TEST_MODE = False
 
 def get_channel_details(youtube_api, channel_id):
     print(f'Loading details for channel [{channel_id}]...')
@@ -162,8 +163,15 @@ while True:
     channel_details = get_channel_details(youtube_api, CHANNEL_ID)
 
     #update profile
-    if datetime.now(UTC) - last_process > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
+    last_profile_update = registry.getValue('last_profile_update', None)
+    if last_profile_update is None:
+        last_profile_update = datetime.now(UTC)
+        registry.setValue('last_profile_update', datetime.now(UTC))
+    else:
+        last_profile_update = datetime.fromisoformat(last_profile_update)
+    if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
         update_profile(bsky, channel_details)
+        registry.setValue('last_profile_update', datetime.now(UTC))
 
     channel_videos = get_channel_videos(youtube_api, CHANNEL_ID)
     posts = get_youtube_community_posts(channel_details['handle'])
@@ -203,7 +211,8 @@ while True:
                             print(f'Downloading post attachment from url [{i["url"]}]...')
                             images.append(requests.get(i['url']).content)
             #post
-            bsky.post(contents=contents, link_embed=link_embed, images=images)
+            if not TEST_MODE:
+                bsky.post(contents=contents, link_embed=link_embed, images=images)
 
     # update session string
     registry.setValue('bluesky_session_string', bsky.session)
