@@ -8,6 +8,7 @@ from registry_file import RegistryFile
 from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta, UTC
+import sys
 
 DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
@@ -85,6 +86,27 @@ BLUESKY_ACCOUNT = os.getenv('BLUESKY_ACCOUNT')
 BLUESKY_APP_PASSWORD = os.getenv('BLUESKY_APP_PASSWORD')
 ACCOUNT_OWNER = os.getenv('ACCOUNT_OWNER')
 
+valid = True
+if not YOUTUBE_API_KEY:
+    print('ERROR: Missing environment variable YOUTUBE_API_KEY.')
+    valid = False
+if not CHANNEL_ID:
+    print('ERROR: Missing environment variable CHANNEL_ID.')
+    valid = False
+if not BLUESKY_ACCOUNT:
+    print('ERROR: Missing environment variable BLUESKY_ACCOUNT.')
+    valid = False
+if not BLUESKY_APP_PASSWORD:
+    print('ERROR: Missing environment variable BLUESKY_APP_PASSWORD.')
+    valid = False
+if not ACCOUNT_OWNER:
+    print('ERROR: Missing environment variable ACCOUNT_OWNER.')
+    valid = False
+
+if not valid:
+    print('Invalid configuration. Exiting...')
+    sys.exit()
+
 #load registry file
 #this is for storing data between runs
 registry = RegistryFile()
@@ -100,11 +122,15 @@ print(channel_details)
 session = registry.getValue('bluesky_session_string', None)
 bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session)
 
-try:
-    bsky.login()
-except Exception as e:
+bsky.login()
+if not bsky.logged_in:
     print('Failed to log in to BlueSky. Trying again without session...')
     bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session=None)
+    bsky.login()
+
+    if not bsky.logged_in:
+        print('Failed to log in to BlueSky. Exiting...')
+        sys.exit()
 
 #update session string
 registry.setValue('bluesky_session_string', bsky.session)
@@ -176,7 +202,6 @@ while True:
                             images.append(requests.get(i['url']).content)
             #post
             bsky.post(contents=contents, link_embed=link_embed, images=images)
-
 
     # update session string
     registry.setValue('bluesky_session_string', bsky.session)
