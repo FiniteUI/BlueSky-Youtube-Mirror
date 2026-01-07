@@ -138,6 +138,7 @@ class BlueSky:
         if links is not None or mentions is not None:
             facets = self.generate_facets(message, links, mentions)
 
+        embed = None
         if embed_post is not None:
             embed = BlueSky.generate_post_embed(embed_post.uri, embed_post.cid)
 
