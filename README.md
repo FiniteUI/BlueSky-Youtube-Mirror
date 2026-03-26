@@ -5,8 +5,10 @@ This is a tool for mirroring a YouTube channel to a BlueSky account. Once deploy
 > This project should NOT be used for impersonating YouTube channels. During initialization, it will create a pinned post giving credit to the original YouTube channel.
 
 For an example of this project up and running see [this BlueSky Account](https://bsky.app/profile/banger-tv-mirror.finiteui.com) that mirror's the [BangerTV youtube channel](https://www.youtube.com/@bangertv).
-<img width="606" height="390" alt="image" src="https://github.com/user-attachments/assets/d91aa56e-3f75-4f0f-89b8-8267c7929df1" />
-<img width="583" height="468" alt="image" src="https://github.com/user-attachments/assets/005175ba-e55f-4c19-83f7-702a64ae29f2" />
+<p align="center">
+  <img width="606" height="390" alt="image" src="https://github.com/user-attachments/assets/d91aa56e-3f75-4f0f-89b8-8267c7929df1" />
+  <img width="583" height="468" alt="image" src="https://github.com/user-attachments/assets/005175ba-e55f-4c19-83f7-702a64ae29f2" />
+</p>
 
 ## Deployment
 ### Environment Variables
