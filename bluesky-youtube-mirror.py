@@ -72,7 +72,7 @@ def update_profile(bluesky_client, channel_details):
     bluesky_client.update_profile(channel_name, description, avatar, banner)
 
 def generate_pinned_post(bluesky_client, channel_url, channel_name):
-    post_text = f'This account is an unofficial automated mirror of the {channel_name} Youtube channel maintained by @{ACCOUNT_OWNER}. This account is not affiliated with the channel in any way. Please support the official YouTube Channel.'
+    post_text = f'This account is an unofficial automated mirror of the {channel_name} Youtube channel maintained by @{ACCOUNT_OWNER}. This account is not affiliated with {channel_name} in any way. Please support the {channel_name} at the link below.'
     print(f'Sending pinned post: {post_text}')
     post_uid = bluesky_client.post(contents=post_text, link_embed=channel_url, mentions=[ACCOUNT_OWNER])
     bluesky_client.pin_post(post_uid)
