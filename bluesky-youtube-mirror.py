@@ -108,6 +108,10 @@ if not valid:
     print('Invalid configuration. Exiting...')
     sys.exit()
 
+#test mode is based off of the existence of this file
+if os.path.exists('test.env'):
+    TEST_MODE = True
+
 #load registry file
 #this is for storing data between runs
 registry = RegistryFile()
@@ -170,7 +174,8 @@ while True:
     else:
         last_profile_update = datetime.fromisoformat(last_profile_update)
     if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        update_profile(bsky, channel_details)
+        if not TEST_MODE:
+            update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
     channel_videos = get_channel_videos(youtube_api, CHANNEL_ID)
