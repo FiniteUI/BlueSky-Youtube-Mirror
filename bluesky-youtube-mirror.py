@@ -43,13 +43,20 @@ def get_channel_videos(api, channel_id):
             video = {
                 'type': 'video',
                 'id': a.contentDetails.upload.videoId,
-                'timestamp': a.snippet.publishedAt,
-                'url': f'https://www.youtube.com/watch?v={a.contentDetails.upload.videoId}'
+                'timestamp': a.snippet.publishedAt
             }
             videos.append(video)
     del raw_activities
 
     return videos
+
+def is_youtube_short(video_id):
+    #checks if the video is a youtube short or not
+    #currently the only way is to check if we get redirected when trying to access the video from the short url
+    url = f'https://www.youtube.com/shorts/{video_id}'
+    response = requests.get(url, allow_redirects = False)
+
+    return not response.is_redirect
 
 def update_profile(bluesky_client, channel_details):
     #grab images
@@ -239,7 +246,11 @@ while True:
             images = None
 
             if c['type'] == 'video':
-                link_embed = c['item']['url']
+                if is_youtube_short(c['item']['id']):
+                    link_embed = f"https://www.youtube.com/shorts/{c['item']['id']}"
+                else:
+                    link_embed = f"https://www.youtube.com/watch?v={c['item']['id']}"
+
             else:
                 contents = c['item']['post_text']
                 link_embed = c['item']['post_url']
@@ -252,6 +263,9 @@ while True:
                         for i in c['item']['attachments']:
                             print(f'Downloading post attachment from url [{i["url"]}]...')
                             images.append(requests.get(i['url']).content)
+
+            print(f'Post Embed URL: {link_embed}')
+
             #post
             if not TEST_MODE:
                 bsky.post(contents=contents, link_embed=link_embed, images=images)
