@@ -228,8 +228,6 @@ while True:
                 channel_updates.append({'timestamp': timestamp, 'type': 'post', 'item': p, 'id': p['id']})
             else:
                 print(f'Post {p["id"]} already posted. Skipping...')
-
-    print(channel_updates)
     channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
 
     print(f'{len(channel_updates)} channel updates found to post...')
