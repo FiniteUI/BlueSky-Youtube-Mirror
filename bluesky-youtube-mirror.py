@@ -16,6 +16,7 @@ NAME_SUFFIX = ' (YouTube Mirror)'
 PROCESS_INTERVAL = 300
 PROFILE_UPDATE_INTERVAL = 86400
 TEST_MODE = False
+KEY_CACHE_COUNT = 50
 
 def get_channel_details(youtube_api, channel_id):
     print(f'Loading details for channel [{channel_id}]...')
@@ -41,7 +42,7 @@ def get_channel_videos(api, channel_id):
         if a.snippet.type == 'upload':
             video = {
                 'type': 'video',
-                'video_id': a.contentDetails.upload.videoId,
+                'id': a.contentDetails.upload.videoId,
                 'timestamp': a.snippet.publishedAt,
                 'url': f'https://www.youtube.com/watch?v={a.contentDetails.upload.videoId}'
             }
@@ -76,6 +77,34 @@ def generate_pinned_post(bluesky_client, channel_url, channel_name):
     print(f'Sending pinned post: {post_text}')
     post_uid = bluesky_client.post(contents=post_text, link_embed=channel_url, mentions=[ACCOUNT_OWNER])
     bluesky_client.pin_post(post_uid)
+
+def add_key_to_cache(registry: RegistryFile, key: str):
+    #add a key to the key_cache registry value
+    #this is a queue with a length limit of KEY_CACHE_COUNT
+    #if the limit is reached, the oldest item is removed
+
+    key_cache = registry.getValue('key_cache')
+    if key_cache is None:
+        key_cache = key
+    else:
+        key_cache = key_cache.split(';')
+        key_cache.insert(0, key)
+
+        if len(key_cache) > KEY_CACHE_COUNT:
+            key_cache.pop()
+
+        key_cache = ';'.join(key_cache)
+
+    registry.setValue('key_cache', key_cache)
+
+def check_if_key_in_cache(registry: RegistryFile, key: str):
+    #check if a key is in the cache
+    key_cache = registry.getValue('key_cache')
+    if key_cache is None:
+        return False
+
+    key_cache = key_cache.split(';')
+    return key in key_cache
 
 print('Process initializing...')
 
@@ -182,15 +211,25 @@ while True:
     posts = get_youtube_community_posts(channel_details['handle'])
 
     #combine data and sort
+    #make sure items are newer than the last process time
+    #also check if they're in the id cache, as the timestamps are not always consistent and exact
     channel_updates = []
     for v in channel_videos:
         timestamp = datetime.fromisoformat(v['timestamp'])
         if timestamp > last_process:
-            channel_updates.append({'timestamp': timestamp, 'type': 'video', 'item': v})
+            if not check_if_key_in_cache(registry, v['id']):
+                channel_updates.append({'timestamp': timestamp, 'type': 'video', 'item': v, 'id': v['id']})
+            else:
+                print(f'Video {v["id"]} already posted. Skipping...')
     for p in posts:
         timestamp = datetime.fromisoformat(p['post_timestamp'])
         if timestamp > last_process:
-            channel_updates.append({'timestamp': p['post_timestamp'], 'type': 'post', 'item': p})
+            if not check_if_key_in_cache(registry, p['id']):
+                channel_updates.append({'timestamp': timestamp, 'type': 'post', 'item': p, 'id': p['id']})
+            else:
+                print(f'Post {p["id"]} already posted. Skipping...')
+
+    print(channel_updates)
     channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
 
     print(f'{len(channel_updates)} channel updates found to post...')
@@ -218,6 +257,8 @@ while True:
             #post
             if not TEST_MODE:
                 bsky.post(contents=contents, link_embed=link_embed, images=images)
+
+            add_key_to_cache(registry, c['id'])
 
     # update session string
     registry.setValue('bluesky_session_string', bsky.session)

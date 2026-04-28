@@ -35,7 +35,7 @@ def get_youtube_community_posts(handle):
             for p in post_data:
                 if 'backstagePostThreadRenderer' in p.keys():
                     post = {
-                        'post_id': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId'],
+                        'id': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId'],
                         'post_text': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['contentText']['runs'][0]['text'],
                         'post_url': f"https://www.youtube.com/post/{p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId']}",
                         #'post_timestamp_friendly': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'],
