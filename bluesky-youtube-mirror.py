@@ -17,6 +17,8 @@ PROCESS_INTERVAL = 300
 PROFILE_UPDATE_INTERVAL = 86400
 TEST_MODE = False
 KEY_CACHE_COUNT = 50
+BLUESKY_POST_LENGTH = 300
+POST_SUFFIX = ' (View Post)'
 
 def get_channel_details(youtube_api, channel_id):
     print(f'Loading details for channel [{channel_id}]...')
@@ -244,6 +246,7 @@ while True:
 
             contents = ''
             images = None
+            links = None
 
             if c['type'] == 'video':
                 if is_youtube_short(c['item']['id']):
@@ -259,16 +262,24 @@ while True:
                     if c['item']['attachments'][0]['type'] == 'video':
                         link_embed = c['attachments'][0]['url']
                     else:
+                        #add the link to the post
+                        #shorten the text if need be
+                        if len(contents) + len(POST_SUFFIX) > BLUESKY_POST_LENGTH:
+                            contents = contents[0:300 - len(POST_SUFFIX) - 3] + '...'
+                        contents += POST_SUFFIX
+
+                        #link value, link text
+                        links = [(c['item']['post_url'], POST_SUFFIX.strip())]
+
                         images = []
                         for i in c['item']['attachments']:
                             print(f'Downloading post attachment from url [{i["url"]}]...')
                             images.append(requests.get(i['url']).content)
 
-            print(f'Post Embed URL: {link_embed}')
-
             #post
+            print(f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}]')
             if not TEST_MODE:
-                bsky.post(contents=contents, link_embed=link_embed, images=images)
+                bsky.post(contents=contents, link_embed=link_embed, images=images, links=links)
 
             add_key_to_cache(registry, c['id'])
 

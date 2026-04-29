@@ -162,12 +162,20 @@ class BlueSky:
         #only handles explicit links
         facets = []
 
+        #links can be passed as a list of urls or a list of tuples of urls and text
         if links is not None:
             for l in links:
-                start = text.encode().find(l.encode())
+                if type(l) is tuple:
+                    link_text = l[1]
+                    link_url = l[0]
+                else:
+                    link_text = l
+                    link_url = l
+
+                start = text.encode().find(link_text.encode())
                 if start != -1:
-                    link = models.AppBskyRichtextFacet.Link(uri=l)
-                    position = models.AppBskyRichtextFacet.ByteSlice(byte_start=start, byte_end=start + len(l))
+                    link = models.AppBskyRichtextFacet.Link(uri=link_url)
+                    position = models.AppBskyRichtextFacet.ByteSlice(byte_start=start, byte_end=start + len(link_text))
                     facet = models.AppBskyRichtextFacet.Main(features=[link], index=position)
                     facets.append(facet)
 
