@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta, UTC
 import sys
+from get_community_post_screenshot import get_community_post_screenshot
 
 DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
@@ -18,7 +19,7 @@ PROFILE_UPDATE_INTERVAL = 86400
 TEST_MODE = False
 KEY_CACHE_COUNT = 50
 BLUESKY_POST_LENGTH = 300
-POST_SUFFIX = ' (View Post)'
+POST_SUFFIX = '(View Post)'
 
 def get_channel_details(youtube_api, channel_id):
     print(f'Loading details for channel [{channel_id}]...')
@@ -148,6 +149,7 @@ if not valid:
 
 #test mode is based off of the existence of this file
 if os.path.exists('test.env'):
+    print('---PROGRAM RUNNING IN TEST MODE---')
     TEST_MODE = True
 
 #load registry file
@@ -247,6 +249,7 @@ while True:
             contents = ''
             images = None
             links = None
+            link_embed = None
 
             if c['type'] == 'video':
                 if is_youtube_short(c['item']['id']):
@@ -255,26 +258,29 @@ while True:
                     link_embed = f"https://www.youtube.com/watch?v={c['item']['id']}"
 
             else:
-                contents = c['item']['post_text']
-                link_embed = c['item']['post_url']
-                if c['item']['attachments'] is not None:
-                    #either video link or image(s)
+                if c['item']['attachments'] is None:
+                    print(f'Generating screenshot for community post: {c["id"]}...')
+                    images = [get_community_post_screenshot(c['item']['post_url'])]
+                    contents = c['item']['post_url']
+                    links = [c['item']['post_url']]
+                else:
                     if c['item']['attachments'][0]['type'] == 'video':
+                        contents = c['item']['post_text']
                         link_embed = c['attachments'][0]['url']
-                    else:
-                        #add the link to the post
+    
+                        #also link to post
                         #shorten the text if need be
-                        if len(contents) + len(POST_SUFFIX) > BLUESKY_POST_LENGTH:
-                            contents = contents[0:300 - len(POST_SUFFIX) - 3] + '...'
+                        if len(contents) + 1 + len(POST_SUFFIX) > BLUESKY_POST_LENGTH:
+                            contents = contents[0:300 - len(POST_SUFFIX) - 1 - 3] + '...'
                         contents += POST_SUFFIX
-
+    
                         #link value, link text
-                        links = [(c['item']['post_url'], POST_SUFFIX.strip())]
-
-                        images = []
-                        for i in c['item']['attachments']:
-                            print(f'Downloading post attachment from url [{i["url"]}]...')
-                            images.append(requests.get(i['url']).content)
+                        links = [(c['item']['post_url'], POST_SUFFIX.strip('(').strip(')'))]
+    
+                    else:
+                        images = [get_community_post_screenshot(c['item']['post_url'])]
+                        contents = c['item']['post_url']
+                        links = [c['item']['post_url']]
 
             #post
             print(f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}]')
