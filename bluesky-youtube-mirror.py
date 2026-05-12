@@ -42,13 +42,26 @@ def get_channel_videos(api, channel_id):
     raw_activities = youtube_api.get_activities_by_channel(channel_id=CHANNEL_ID)
     videos = []
     for a in raw_activities.items:
-        if a.snippet.type == 'upload':
-            video = {
-                'type': 'video',
-                'id': a.contentDetails.upload.videoId,
-                'timestamp': a.snippet.publishedAt
-            }
-            videos.append(video)
+        if a.snippet.type in ('upload', 'playlistItem'):
+            if a.snippet.type == 'upload':
+                video = {
+                    'type': 'video',
+                    'id': a.contentDetails.upload.videoId,
+                    'timestamp': a.snippet.publishedAt,
+                    'title:': a.snippet.title
+                }
+
+            elif a.snippet.type == 'playlistItem':
+                #members only videos don't appear in the videos activities but they do appear as playlist items
+                video = {
+                    'type': 'video',
+                    'id': a.contentDetails.playlistItem.resourceId.videoId,
+                    'timestamp': a.snippet.publishedAt,
+                    'title:': a.snippet.title
+                }
+        
+            if video['id'] not in [v['id'] for v in videos]:
+                videos.append(video)
     del raw_activities
 
     return videos
@@ -295,6 +308,5 @@ while True:
     print(f'Processing complete. Waiting for {PROCESS_INTERVAL} seconds...')
     time.sleep(PROCESS_INTERVAL)
 
-#post length
 #repo link
 #alt text
