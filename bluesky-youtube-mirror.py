@@ -233,25 +233,26 @@ while True:
 
     channel_videos = get_channel_videos(youtube_api, CHANNEL_ID)
     posts = get_youtube_community_posts(channel_details['handle'])
+    for post in posts:
+        post['type'] = 'post'
+
+    raw_channel_updates = channel_videos + posts
+    del channel_videos
+    del posts
 
     #combine data and sort
     #make sure items are newer than the last process time
     #also check if they're in the id cache, as the timestamps are not always consistent and exact
     channel_updates = []
-    for v in channel_videos:
-        timestamp = datetime.fromisoformat(v['timestamp'])
+    for u in raw_channel_updates:
+        timestamp = datetime.fromisoformat(u['timestamp'])
         if timestamp > last_process:
-            if not check_if_key_in_cache(registry, v['id']):
-                channel_updates.append({'timestamp': timestamp, 'type': 'video', 'item': v, 'id': v['id']})
+            if not check_if_key_in_cache(registry, u['id']):
+                channel_updates.append({'timestamp': timestamp, 'type': u['type'], 'item': u, 'id': u['id']})
             else:
-                print(f'Video {v["id"]} already posted. Skipping...')
-    for p in posts:
-        timestamp = datetime.fromisoformat(p['post_timestamp'])
-        if timestamp > last_process:
-            if not check_if_key_in_cache(registry, p['id']):
-                channel_updates.append({'timestamp': timestamp, 'type': 'post', 'item': p, 'id': p['id']})
-            else:
-                print(f'Post {p["id"]} already posted. Skipping...')
+                print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
+        else:
+            print(f'Update {u["id"]} ({u["type"]}) is before last process timestamp. Skipping...')
     channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
 
     print(f'{len(channel_updates)} channel updates found to post...')
