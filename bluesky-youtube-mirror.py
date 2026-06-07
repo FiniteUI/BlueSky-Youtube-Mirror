@@ -10,6 +10,7 @@ import os
 from datetime import datetime, timedelta, UTC
 import sys
 from get_community_post_screenshot import get_community_post_screenshot
+from get_youtube_channel_videos import get_youtube_channel_videos
 
 DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
@@ -33,38 +34,6 @@ def get_channel_details(youtube_api, channel_id):
                        'url': f'https://www.youtube.com/{channel.items[0].snippet.customUrl}'
                        }
     return channel_details
-
-def get_channel_videos(api, channel_id):
-    print(f'Loading videos for channel [{channel_id}]...')
-
-    #get videos
-    #default page size is 20
-    raw_activities = youtube_api.get_activities_by_channel(channel_id=CHANNEL_ID)
-    videos = []
-    for a in raw_activities.items:
-        if a.snippet.type in ('upload', 'playlistItem'):
-            if a.snippet.type == 'upload':
-                video = {
-                    'type': 'video',
-                    'id': a.contentDetails.upload.videoId,
-                    'timestamp': a.snippet.publishedAt,
-                    'title:': a.snippet.title
-                }
-
-            elif a.snippet.type == 'playlistItem':
-                #members only videos don't appear in the videos activities but they do appear as playlist items
-                video = {
-                    'type': 'video',
-                    'id': a.contentDetails.playlistItem.resourceId.videoId,
-                    'timestamp': a.snippet.publishedAt,
-                    'title:': a.snippet.title
-                }
-        
-            if video['id'] not in [v['id'] for v in videos]:
-                videos.append(video)
-    del raw_activities
-
-    return videos
 
 def is_youtube_short(video_id):
     #checks if the video is a youtube short or not
@@ -212,12 +181,14 @@ while True:
         last_process = datetime.fromisoformat(last_process)
     # update last run time
     registry.setValue('last_process', datetime.now(UTC))
-
     print(f'Last process: {last_process}')
+    last_process += timedelta(hours=-1)
+    print(f'Update cutoff timestamp: {last_process}')
 
     #grab data
     print('Grabbing channel data...')
     channel_details = get_channel_details(youtube_api, CHANNEL_ID)
+    print(channel_details)
 
     #update profile
     last_profile_update = registry.getValue('last_profile_update', None)
@@ -231,16 +202,20 @@ while True:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
-    channel_videos = get_channel_videos(youtube_api, CHANNEL_ID)
+    print('Loading channel videos...')
+    channel_videos = get_youtube_channel_videos(channel_details['handle'])
+    print(f'{len(channel_videos)} channel videos loaded...')
+
+    print('Loading channel community posts...')
     posts = get_youtube_community_posts(channel_details['handle'])
     for post in posts:
         post['type'] = 'post'
+    print(f'{len(posts)} channel community posts loaded...')
 
     raw_channel_updates = channel_videos + posts
     del channel_videos
     del posts
 
-    #combine data and sort
     #make sure items are newer than the last process time
     #also check if they're in the id cache, as the timestamps are not always consistent and exact
     channel_updates = []
@@ -252,7 +227,7 @@ while True:
             else:
                 print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
         else:
-            print(f'Update {u["id"]} ({u["type"]}) is before last process timestamp. Skipping...')
+            print(f'Update {u["id"]} ({u["type"]} - {u['timestamp']}) is before last process timestamp ({last_process}). Skipping...')
     channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
 
     print(f'{len(channel_updates)} channel updates found to post...')

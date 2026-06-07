@@ -2,14 +2,11 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import json
-import arrow
-from datetime import datetime, UTC, timedelta
+from get_timestamp_from_post_time import get_timestamp_from_post_time
 
 #accepts a youtube channel handle
 #returns a list of their most recent community posts
 def get_youtube_community_posts(handle):
-    print(f'Getting community posts for channel [{handle}]...')
-
     # get community posts
     community_posts_url = f'https://www.youtube.com/{handle}/posts'
     community_posts_response = requests.get(community_posts_url)
@@ -76,27 +73,3 @@ def get_youtube_community_posts(handle):
                     posts.append(post)
 
     return posts
-
-def get_timestamp_from_post_time(time_raw):
-    time_clean = time_raw.replace('hour ', 'hours ')
-    time_clean = time_clean.replace('day ', 'days ')
-    time_clean = time_clean.replace('minute ', 'minutes ')
-    time_clean = time_clean.replace('week ', 'weeks ')
-    time_clean = time_clean.replace('month ', 'months ')
-    time_clean = time_clean.replace('second ', 'seconds ')
-    time_clean = time_clean.replace('year ', 'years ')
-    time_clean = time_clean.replace('(edited)', '')
-    time_clean = time_clean.strip()
-
-    timestamp_handler = arrow.utcnow()
-
-    try:
-        time_fixed = timestamp_handler.dehumanize(time_clean)
-    except ValueError as e:
-        print(f'Failed to humanize timestamp: {time_raw}, {time_clean}')
-        print(e)
-
-        #set an arbitrary time in the past to not cause issues
-        time_fixed = arrow.get(datetime.now(UTC) + timedelta(days=-100))
-
-    return time_fixed.format()
