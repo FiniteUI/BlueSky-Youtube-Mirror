@@ -1,29 +1,46 @@
 from PIL import Image
 import numpy
-import requests
 from io import BytesIO
-
-SCREENSHOT_ENDPOINT = 'https://html2png.dev/api/screenshot'
+from playwright.sync_api import sync_playwright
 
 #bottom gray border line
-BORDER_COLOR = [229, 229, 229]
+BORDER_COLOR = [204, 204, 204]
 
 # image should always be 1024x1366
 START_Y = 128
 BORDER_PROBE_Y = 12
 
+#content to wait for when loading the page
+CONTENT_SELECTOR = "ytd-backstage-post-thread-renderer #attachment, ytd-backstage-post-thread-renderer #content-text"
+
 def get_screenshot(url):
     screenshot = None
 
-    print(f'Generating screenshot from [{SCREENSHOT_ENDPOINT}] - [{url}]...')
-    parameters = {'url': url, 'width': 1024, 'height': 1366, 'deviceScaleFactor': 1}
-    response = requests.post(SCREENSHOT_ENDPOINT, parameters)
+    print(f'Generating screenshot from url [{url}]...')
 
-    if response.status_code == 200:
-        screenshot = requests.get(response.json()['url']).content
-        screenshot = BytesIO(screenshot)
-    else:
-        print(f'Failed to generate screenshot: {response.status_code} - {response.json()}')
+    try:
+        with sync_playwright() as pw:
+            print('Loading Chromium browser...')
+            browser = pw.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.set_viewport_size({'width': 1024, 'height': 1366})
+
+            print(f'Loading url [{url}]...')
+            page.goto(url, wait_until="domcontentloaded")
+            page.locator(CONTENT_SELECTOR).first.wait_for(state="visible", timeout=30000)
+
+            #small wait for youtube to finish displaying items
+            page.wait_for_timeout(1500)
+
+            print('Taking screenshot...')
+            screenshot = page.screenshot()
+            screenshot = BytesIO(screenshot)
+
+            print('Unloading browser...')
+            browser.close()
+    except Exception as e:
+        print('Failed to generate screenshot...')
+        print(e)
 
     return screenshot
 
