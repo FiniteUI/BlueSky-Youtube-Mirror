@@ -174,7 +174,12 @@ if not initialized:
 while True:
     print('Processing...')
 
-    last_process = registry.getValue('last_process', None)
+    #get last process
+    #first try override env, then get it from the registry
+    last_process = os.getenv('LAST_PROCESS_OVERRIDE')
+    if not last_process:
+        last_process = registry.getValue('last_process', None)
+
     if last_process is None:
         last_process = datetime.now(UTC)
     else:
@@ -267,6 +272,7 @@ while True:
                         links = [(c['item']['post_url'], POST_SUFFIX.strip('(').strip(')'))]
     
                     else:
+                        print(f'Generating screenshot for community post: {c["id"]}...')
                         images = [get_community_post_screenshot(c['item']['post_url'])]
                         contents = c['item']['post_url']
                         links = [c['item']['post_url']]
