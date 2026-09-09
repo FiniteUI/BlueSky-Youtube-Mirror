@@ -176,10 +176,7 @@ while True:
 
     #get last process
     #first try override env, then get it from the registry
-    last_process = os.getenv('LAST_PROCESS_OVERRIDE')
-    if not last_process:
-        last_process = registry.getValue('last_process', None)
-
+    last_process = os.getenv('LAST_PROCESS_OVERRIDE', registry.getValue('last_process', None))
     if last_process is None:
         last_process = datetime.now(UTC)
     else:
@@ -227,7 +224,7 @@ while True:
     for u in raw_channel_updates:
         timestamp = datetime.fromisoformat(u['timestamp'])
         if timestamp > last_process:
-            if not check_if_key_in_cache(registry, u['id']):
+            if os.getenv('IGNORE_CACHE', False) or not check_if_key_in_cache(registry, u['id']):
                 channel_updates.append({'timestamp': timestamp, 'type': u['type'], 'item': u, 'id': u['id']})
             else:
                 print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
