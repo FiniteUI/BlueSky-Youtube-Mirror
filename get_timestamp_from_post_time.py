@@ -23,4 +23,4 @@ def get_timestamp_from_post_time(time_raw):
         #set an arbitrary time in the past to not cause issues
         time_fixed = arrow.get(datetime.now(UTC) + timedelta(days=-100))
 
-    return time_fixed.format()
+    return time_fixed.datetime

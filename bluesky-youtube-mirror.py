@@ -10,7 +10,7 @@ import os
 from datetime import datetime, timedelta, UTC
 import sys
 from get_community_post_screenshot import get_community_post_screenshot
-from get_youtube_channel_videos import get_youtube_channel_videos
+from get_youtube_channel_videos import get_all_channel_videos
 
 DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
@@ -34,14 +34,6 @@ def get_channel_details(youtube_api, channel_id):
                        'url': f'https://www.youtube.com/{channel.items[0].snippet.customUrl}'
                        }
     return channel_details
-
-def is_youtube_short(video_id):
-    #checks if the video is a youtube short or not
-    #currently the only way is to check if we get redirected when trying to access the video from the short url
-    url = f'https://www.youtube.com/shorts/{video_id}'
-    response = requests.get(url, allow_redirects = False)
-
-    return not response.is_redirect
 
 def update_profile(bluesky_client, channel_details):
     #grab images
@@ -205,7 +197,7 @@ while True:
         registry.setValue('last_profile_update', datetime.now(UTC))
 
     print('Loading channel videos...')
-    channel_videos = get_youtube_channel_videos(channel_details['handle'])
+    channel_videos = get_all_channel_videos(channel_details['handle'], cutoff = last_process)
     print(f'{len(channel_videos)} channel videos loaded...')
 
     print('Loading channel community posts...')
@@ -222,10 +214,9 @@ while True:
     #also check if they're in the id cache, as the timestamps are not always consistent and exact
     channel_updates = []
     for u in raw_channel_updates:
-        timestamp = datetime.fromisoformat(u['timestamp'])
-        if timestamp > last_process:
+        if u['timestamp'] > last_process:
             if os.getenv('IGNORE_CACHE', False) or not check_if_key_in_cache(registry, u['id']):
-                channel_updates.append({'timestamp': timestamp, 'type': u['type'], 'item': u, 'id': u['id']})
+                channel_updates.append({'timestamp': u['timestamp'], 'type': u['type'], 'item': u, 'id': u['id']})
             else:
                 print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
         else:
@@ -243,11 +234,9 @@ while True:
             link_embed = None
 
             if c['type'] == 'video':
-                if is_youtube_short(c['item']['id']):
-                    link_embed = f"https://www.youtube.com/shorts/{c['item']['id']}"
-                else:
-                    link_embed = f"https://www.youtube.com/watch?v={c['item']['id']}"
-
+                link_embed = f"https://www.youtube.com/watch?v={c['item']['id']}"
+            elif c['type'] == 'short':
+                link_embed = f"https://www.youtube.com/shorts/{c['item']['id']}"
             else:
                 if c['item']['attachments'] is None:
                     print(f'Generating screenshot for community post: {c["id"]}...')
