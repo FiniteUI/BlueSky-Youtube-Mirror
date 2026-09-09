@@ -15,12 +15,15 @@ BORDER_PROBE_Y = 12
 def get_screenshot(url):
     screenshot = None
 
+    print(f'Generating screenshot from [{SCREENSHOT_ENDPOINT}] - [{url}]...')
     parameters = {'url': url, 'width': 1024, 'height': 1366, 'deviceScaleFactor': 1}
     response = requests.post(SCREENSHOT_ENDPOINT, parameters)
 
     if response.status_code == 200:
         screenshot = requests.get(response.json()['url']).content
         screenshot = BytesIO(screenshot)
+    else:
+        print(f'Failed to generate screenshot: {response.status_code} - {response.json()}')
 
     return screenshot
 
@@ -70,6 +73,8 @@ def crop_community_post(image):
 
 def get_community_post_screenshot(url):
     screenshot = get_screenshot(url)
-    screenshot = crop_community_post(screenshot)
+
+    if screenshot:
+        screenshot = crop_community_post(screenshot)
 
     return screenshot
