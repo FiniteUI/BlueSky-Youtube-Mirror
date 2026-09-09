@@ -6,42 +6,53 @@ from PIL import Image
 from io import BytesIO
 
 class BlueSky:
-    def __init__(self, username=None, password=None, session=None):
+    def __init__(self, username=None, password=None, session=None, did=None):
         self.client = Client()
         self.id_resolver = IdResolver()
         self.message_client = None
 
         self.username = username
         self.password = password
+        self.did = did
         self.session = session
         self.logged_in = False
+        self.error = None
+        self.handle = None
 
     def login(self):
         try:
             if self.session is not None:
                 self.client.login(session_string=self.session)
             else:
-                self.client.login(self.username, self.password)
-                self.session = self.client.export_session_string()
+                if self.did is not None:
+                    self.client.login(self.did, self.password)
+                else:
+                    self.client.login(self.username, self.password)
 
-            print(f'Successful BlueSky login as user {self.username}')
+            self.did = self.get_did()
+            self.handle = self.get_handle_from_did(self.did)
+            self.session = self.client.export_session_string()
+
+            print(f'Successful BlueSky login as user {self.handle}')
 
             self.logged_in = True
             self.client.on_session_change(self.on_session_change)
 
             self.message_client = self.client.with_bsky_chat_proxy().chat.bsky.convo
-        except (exceptions.UnauthorizedError, exceptions.BadRequestError) as e:
-            print("Failed to authorize with BlueSky")
-            print(e)
+
+            self.error = None
+        except (exceptions.UnauthorizedError, exceptions.BadRequestError, ValueError) as e:
+            self.error = "Failed to authorize with BlueSky: " + str(e)
+            print(self.error)
 
         return self.logged_in
 
     def on_session_change(self, event: SessionEvent, session: Session):
-        print(f'Session Change for user {self.username}')
+        print(f'Session Change for user {self.handle}')
         if event in (SessionEvent.CREATE, SessionEvent.REFRESH):
             self.session = self.client.export_session_string()
 
-    def post(self, contents, links: list = None, mentions: list = None, link_embed = None, hashtags: list = None, images: list[bytes] = None, images_alt_text: list = None):
+    def post(self, contents, links: list = None, mentions: list = None, link_embed = None, hashtags: list = None, images: list[bytes] = None, images_alt_text: list = None, embed_proxy = None, embed_title = None, embed_description = None, embed_image_link = None):
         #handle links and mentions
         facets = None
         if links is not None or mentions is not None:
@@ -52,7 +63,7 @@ class BlueSky:
         if not images:
             #handle embedded link (only one)
             if link_embed is not None:
-                link_embed = self.get_link_embed_details(link_embed)
+                link_embed = self.get_link_embed_details(link_embed, embed_proxy=embed_proxy, embed_title=embed_title, embed_description=embed_description, embed_image_link=embed_image_link)
 
         if images:
             if not images_alt_text:
@@ -73,32 +84,50 @@ class BlueSky:
 
         return post.uri
 
-    def get_link_embed_details(self, link):
+    def get_link_embed_details(self, link, embed_proxy=None, embed_title=None, embed_description=None, embed_image_link=None):
+        print(f'Generating embed for link [{link}]...')
         title = ''
         description = ''
         thumbnail = None
+        img_url = None
 
-        response = requests.get(link)
-        response.raise_for_status()
-        data = BeautifulSoup(response.text, "html.parser")
+        if embed_title and embed_description and embed_image_link:
+            title = embed_title
+            description = embed_description
+            img_url = embed_image_link
+        else:
+            print(f"GET - [{link}]")
+            if embed_proxy:
+                text = get_response_from_embed_proxy(link, embed_proxy)
+            else:
+                response = requests.get(link)
+                print(response)
+                response.raise_for_status()
+                text = response.text
 
-        title_tag = data.find("meta", property="og:title")
-        if title_tag:
-            title = title_tag['content']
+            data = BeautifulSoup(text, "html.parser")
 
-        description_tag = data.find("meta", property="og:description")
-        if description_tag:
-            description = description_tag["content"]
+            title_tag = data.find("meta", property="og:title")
+            if title_tag:
+                title = title_tag['content']
+
+            description_tag = data.find("meta", property="og:description")
+            if description_tag:
+                description = description_tag["content"]
         
-        image_tag = data.find("meta", property="og:image")
-        if image_tag:
-            img_url = image_tag["content"]
-            if "://" not in img_url:
-                img_url = link + img_url
+            image_tag = data.find("meta", property="og:image")
+            if image_tag:
+                img_url = image_tag["content"]
+                if "://" not in img_url:
+                    img_url = link + img_url
+
+        if img_url:
+            print(f"GET - [{img_url}]")
             response = requests.get(img_url)
+            print(response)
             response.raise_for_status()
 
-            thumbnail = self.client.upload_blob(response.content).blob
+        thumbnail = self.client.upload_blob(response.content).blob
 
         embed = models.AppBskyEmbedExternal.Main(
             external=models.AppBskyEmbedExternal.External(
@@ -120,7 +149,11 @@ class BlueSky:
     def send_message(self, recipient, message, links: list=None, mentions: list=None, embed_post = None):
         print(f'Sending user [{recipient}] message [{message}]...')
 
-        recipient_id = self.get_did_from_handle(recipient)
+        if recipient.startswith('did:'):
+            recipient_id = recipient
+        else:
+            recipient_id = self.get_did_from_handle(recipient)
+        
         if recipient_id is None:
             print(f"Error: Unable to find user [{recipient}]")
             return
@@ -164,6 +197,8 @@ class BlueSky:
 
         #links can be passed as a list of urls or a list of tuples of urls and text
         if links is not None:
+            if type(links) is not list:
+                links = [links]
             for l in links:
                 if type(l) is tuple:
                     link_text = l[1]
@@ -180,6 +215,8 @@ class BlueSky:
                     facets.append(facet)
 
         if mentions is not None:
+            if type(mentions) is not list:
+                mentions = [mentions]
             for m in mentions:
                 mention_full = f'@{m}'
                 start = text.encode().find(mention_full.encode())
@@ -212,7 +249,7 @@ class BlueSky:
         return self.id_resolver.did.resolve(did).also_known_as[0].replace('at://', '')
 
     def get_did(self):
-        return self.get_did_from_handle(self.username)
+        return self.client.me.did
     
     def get_mentions(self, limit=100, cutoff_timestamp=None):
         params = models.AppBskyNotificationListNotifications.ParamsDict(limit=limit, reasons=['mention'])
@@ -258,6 +295,10 @@ class BlueSky:
         rkey = url_split[len(url_split) - 1]
         handle = url_split[4]
         return self.client.get_post(rkey, handle).uri
+    
+    def get_post_url_from_uri(self, uri):
+        post = self.get_post_from_uri(uri)
+        return self.get_post_url_from_post(post)
 
     def get_profile(self, did):
         return self.client.app.bsky.actor.profile.get(did, 'self').value
@@ -291,6 +332,19 @@ class BlueSky:
 
     def pin_post(self, uri):
         return self.update_profile(pinned_post_uri=uri)
+    
+def get_response_from_embed_proxy(url, proxy):
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "cmd": "request.get",
+        "url": url,
+        "maxTimeout": 180000,
+        "disableMedia": True
+    }
+    response = requests.post(proxy, headers=headers, json=data)
+    print(f'Proxy response: {response}')
+
+    return response.json()['solution']['response']
 
 if __name__ == "__main__":
     print('This module should not be run directly.')
