@@ -5,6 +5,22 @@ import json
 from get_timestamp_from_post_time import get_timestamp_from_post_time
 from datetime import datetime, timezone
 
+def get_youtube_data_from_url(url):
+    response = requests.get(url)
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    data = soup.find_all('script', string=re.compile('var ytInitialData'), recursive=True)
+    if len(data) == 0:
+        return None
+
+    # parse result json
+    data = data[0]
+    data = data.string.replace('var ytInitialData = ', '', 1)
+    data = data[:len(data) - 1]
+    data = json.loads(data)
+
+    return data
+
 def get_all_channel_videos(handle, cutoff=None):
     videos = []
 
@@ -21,19 +37,9 @@ def get_all_channel_videos(handle, cutoff=None):
 def get_youtube_channel_videos(handle, cutoff=None):
     videos = []
 
-    url = f'https://www.youtube.com/{handle}/videos'
-    response = requests.get(url)
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    data = soup.find_all('script', string=re.compile('var ytInitialData'), recursive=True)
-    if len(data) == 0:
+    data = get_youtube_data_from_url(f'https://www.youtube.com/{handle}/videos')
+    if not data:
         return videos
-
-    #parse result json
-    data = data[0]
-    data = data.string.replace('var ytInitialData = ', '', 1)
-    data = data[:len(data)-1]
-    data = json.loads(data)
 
     #grab videos tab
     vidoes_index = None
@@ -79,19 +85,9 @@ def get_youtube_channel_videos(handle, cutoff=None):
 def get_youtube_channel_shorts(handle, cutoff=None):
     videos = []
 
-    url = f'https://www.youtube.com/{handle}/shorts'
-    response = requests.get(url)
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    data = soup.find_all('script', string=re.compile('var ytInitialData'), recursive=True)
-    if len(data) == 0:
+    data = get_youtube_data_from_url(f'https://www.youtube.com/{handle}/shorts')
+    if not data:
         return videos
-
-    # parse result json
-    data = data[0]
-    data = data.string.replace('var ytInitialData = ', '', 1)
-    data = data[:len(data) - 1]
-    data = json.loads(data)
 
     #grab videos tab
     shorts_index = None
@@ -130,19 +126,9 @@ def get_youtube_channel_shorts(handle, cutoff=None):
 def get_short_timestamp(video_id):
     timestamp = None
 
-    url = f'https://www.youtube.com/watch?v={video_id}'
-    response = requests.get(url)
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    data = soup.find_all('script', string=re.compile('var ytInitialData'), recursive=True)
-    if len(data) == 0:
+    data = get_youtube_data_from_url(f'https://www.youtube.com/watch?v={video_id}')
+    if not data:
         return timestamp
-
-    # parse result json
-    data = data[0]
-    data = data.string.replace('var ytInitialData = ', '', 1)
-    data = data[:len(data) - 1]
-    data = json.loads(data)
 
     try:
         timestamp = data['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['dateText']['simpleText']
