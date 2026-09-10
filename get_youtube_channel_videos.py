@@ -1,12 +1,13 @@
-import requests
 import re
 from bs4 import BeautifulSoup
 import json
 from get_timestamp_from_post_time import get_timestamp_from_post_time
 from datetime import datetime, timezone
+from request_handler import RequestHandler
 
 def get_youtube_data_from_url(url):
-    response = requests.get(url)
+    with RequestHandler() as request:
+        response = request.get(url)
 
     soup = BeautifulSoup(response.text, 'html.parser')
     data = soup.find_all('script', string=re.compile('var ytInitialData'), recursive=True)

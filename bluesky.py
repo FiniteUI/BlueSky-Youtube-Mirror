@@ -4,6 +4,7 @@ import requests
 from datetime import datetime
 from PIL import Image
 from io import BytesIO
+from request_handler import RequestHandler
 
 class BlueSky:
     def __init__(self, username=None, password=None, session=None, did=None):
@@ -100,7 +101,9 @@ class BlueSky:
             if embed_proxy:
                 text = get_response_from_embed_proxy(link, embed_proxy)
             else:
-                response = requests.get(link)
+                with RequestHandler() as request:
+                    response = request.get(link)
+
                 print(response)
                 response.raise_for_status()
                 text = response.text
@@ -123,7 +126,9 @@ class BlueSky:
 
         if img_url:
             print(f"GET - [{img_url}]")
-            response = requests.get(img_url)
+            with RequestHandler() as request:
+                response = request.get(img_url)
+
             print(response)
             response.raise_for_status()
 
@@ -341,6 +346,7 @@ def get_response_from_embed_proxy(url, proxy):
         "maxTimeout": 180000,
         "disableMedia": True
     }
+
     response = requests.post(proxy, headers=headers, json=data)
     print(f'Proxy response: {response}')
 

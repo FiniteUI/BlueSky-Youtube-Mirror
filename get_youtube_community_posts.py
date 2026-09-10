@@ -1,4 +1,4 @@
-import requests
+from request_handler import RequestHandler
 from bs4 import BeautifulSoup
 import re
 import json
@@ -9,7 +9,10 @@ from get_timestamp_from_post_time import get_timestamp_from_post_time
 def get_youtube_community_posts(handle):
     # get community posts
     community_posts_url = f'https://www.youtube.com/{handle}/posts'
-    community_posts_response = requests.get(community_posts_url)
+
+    with RequestHandler() as request:
+        community_posts_response = request.get(community_posts_url)
+
     community_posts_data = BeautifulSoup(community_posts_response.text, 'html.parser')
 
     posts = []
