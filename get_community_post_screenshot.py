@@ -13,7 +13,7 @@ BORDER_PROBE_Y = 12
 #content to wait for when loading the page
 CONTENT_SELECTOR = "ytd-backstage-post-thread-renderer #attachment, ytd-backstage-post-thread-renderer #content-text"
 
-def get_screenshot(url):
+def get_screenshot(url, timeout=30000):
     screenshot = None
 
     print(f'Generating screenshot from url [{url}]...')
@@ -27,7 +27,7 @@ def get_screenshot(url):
 
             print(f'Loading url [{url}]...')
             page.goto(url, wait_until="domcontentloaded")
-            page.locator(CONTENT_SELECTOR).first.wait_for(state="visible", timeout=30000)
+            page.locator(CONTENT_SELECTOR).first.wait_for(state="visible", timeout=timeout)
 
             #small wait for youtube to finish displaying items
             page.wait_for_timeout(1500)

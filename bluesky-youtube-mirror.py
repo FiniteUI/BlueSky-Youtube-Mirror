@@ -259,7 +259,7 @@ while True:
     
                     else:
                         print(f'Generating screenshot for community post: {c["id"]}...')
-                        images = [get_community_post_screenshot(c['item']['post_url'])]
+                        images = [get_community_post_screenshot(c['item']['post_url'], os.getenv('SCREENSHOT_TIMEOUT', 30000))]
                         contents = c['item']['post_url']
                         links = [c['item']['post_url']]
 
