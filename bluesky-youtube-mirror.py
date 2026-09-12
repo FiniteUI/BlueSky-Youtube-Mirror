@@ -215,13 +215,14 @@ while True:
     #also check if they're in the id cache, as the timestamps are not always consistent and exact
     channel_updates = []
     for u in raw_channel_updates:
-        if u['timestamp'] > last_process:
+        if not u['timestamp'] or u['timestamp'] > last_process:
             if os.getenv('IGNORE_CACHE', False) or not check_if_key_in_cache(registry, u['id']):
                 channel_updates.append({'timestamp': u['timestamp'], 'type': u['type'], 'item': u, 'id': u['id']})
             else:
                 print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
         else:
             print(f'Update {u["id"]} ({u["type"]} - {u['timestamp']}) is before last process timestamp ({last_process}). Skipping...')
+
     channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
 
     print(f'{len(channel_updates)} channel updates found to post...')
