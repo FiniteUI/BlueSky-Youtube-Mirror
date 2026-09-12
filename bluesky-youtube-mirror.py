@@ -125,6 +125,8 @@ if not valid:
 DO_NOT_POST = os.getenv('DO_NOT_POST', False)
 if DO_NOT_POST:
     print('---PROGRAM RUNNING IN TEST MODE---')
+else:
+    print('---PROGRAM RUNNING IN LIVE MODE---')
 
 #load registry file
 #this is for storing data between runs
