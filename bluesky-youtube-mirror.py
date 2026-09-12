@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, UTC
 import sys
 from get_community_post_screenshot import get_community_post_screenshot
 from get_youtube_channel_videos import get_all_channel_videos
+from get_youtube_embed_details import get_youtube_embed_details
 
 DISPLAY_NAME_LENGTH = 64
 DESCRIPTION_LENGTH = 256
@@ -236,6 +237,10 @@ while True:
             images = None
             links = None
             link_embed = None
+            
+            embed_title = None
+            embed_description = None
+            embed_image_url = None
 
             if c['type'] == 'video':
                 link_embed = f"https://www.youtube.com/watch?v={c['item']['id']}"
@@ -267,10 +272,14 @@ while True:
                         contents = c['item']['post_url']
                         links = [c['item']['post_url']]
 
+            if c['type'] in ('video', 'short'):
+                embed_title, embed_description, embed_image_url = get_youtube_embed_details(link_embed)
+
             #post
-            print(f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}]')
+            print(f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}], Title-[{embed_title}, Description-[{embed_description}], Image-[{embed_image_url}]')
             if not DO_NOT_POST:
-                bsky.post(contents=contents, link_embed=link_embed, images=images, links=links)
+                print(f'Posting update {c["id"]}...')
+                bsky.post(contents=contents, link_embed=link_embed, images=images, links=links, embed_title=embed_title, embed_description=embed_description, embed_image_link=embed_image_url)
 
             add_key_to_cache(registry, c['id'])
 
