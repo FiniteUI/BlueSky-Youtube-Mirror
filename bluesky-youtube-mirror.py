@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta, UTC
 import sys
-from get_community_post_screenshot import get_community_post_screenshot
+from get_community_post_screenshot import get_community_post_screenshot, DEFAULT_TIMEOUT
 from get_youtube_channel_videos import get_all_channel_videos
 from get_youtube_embed_details import get_youtube_embed_details
 
@@ -128,6 +128,10 @@ if DO_NOT_POST:
     print('---PROGRAM RUNNING IN TEST MODE---')
 else:
     print('---PROGRAM RUNNING IN LIVE MODE---')
+
+SCREENSHOT_TIMEOUT = os.getenv('SCREENSHOT_TIMEOUT')
+if SCREENSHOT_TIMEOUT:
+    SCREENSHOT_TIMEOUT = int(SCREENSHOT_TIMEOUT)
 
 #load registry file
 #this is for storing data between runs
@@ -249,7 +253,7 @@ while True:
             else:
                 if c['item']['attachments'] is None:
                     print(f'Generating screenshot for community post: {c["id"]}...')
-                    images = [get_community_post_screenshot(c['item']['post_url'], timeout=os.getenv('SCREENSHOT_TIMEOUT'))]
+                    images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
                     contents = c['item']['post_url']
                     links = [c['item']['post_url']]
                 else:
@@ -268,7 +272,7 @@ while True:
     
                     else:
                         print(f'Generating screenshot for community post: {c["id"]}...')
-                        images = [get_community_post_screenshot(c['item']['post_url'], timeout=os.getenv('SCREENSHOT_TIMEOUT'))]
+                        images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
                         contents = c['item']['post_url']
                         links = [c['item']['post_url']]
 
