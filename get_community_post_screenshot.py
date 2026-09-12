@@ -94,9 +94,10 @@ def crop_community_post(image):
     return final_image.read()
 
 def get_community_post_screenshot(url, timeout=None):
-    screenshot = get_screenshot(url)
+    screenshot = get_screenshot(url, timeout=timeout)
 
     if screenshot:
-        screenshot = crop_community_post(screenshot, timeout=timeout)
+        screenshot = crop_community_post(screenshot)
 
+    print(type(screenshot))
     return screenshot
