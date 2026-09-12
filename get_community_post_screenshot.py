@@ -28,7 +28,7 @@ def get_screenshot(url, timeout=None):
             page.set_viewport_size({'width': 1024, 'height': 1366})
 
             print(f'Loading url [{url}]...')
-            page.goto(url, wait_until="domcontentloaded")
+            page.goto(url, wait_until="domcontentloaded", timeout=timeout)
 
             if not timeout:
                 timeout = DEFAULT_TIMEOUT
