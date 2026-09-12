@@ -6,6 +6,8 @@ from PIL import Image
 from io import BytesIO
 from request_handler import RequestHandler
 
+MAX_THUMBNAIL_SIZE = 1000000
+
 class BlueSky:
     def __init__(self, username=None, password=None, session=None, did=None):
         self.client = Client()
@@ -132,7 +134,9 @@ class BlueSky:
             print(response)
             response.raise_for_status()
 
-        thumbnail = self.client.upload_blob(response.content).blob
+        thumbnail = BlueSky.compress_embed_thumbnail(response.content)
+        thumbnail = self.client.upload_blob(thumbnail).blob
+        thumbnail.mime_type = 'image/jpeg'
 
         embed = models.AppBskyEmbedExternal.Main(
             external=models.AppBskyEmbedExternal.External(
@@ -144,6 +148,19 @@ class BlueSky:
         )
         
         return embed
+
+    def compress_embed_thumbnail(thumbnail: bytes):
+        if len(thumbnail) <= MAX_THUMBNAIL_SIZE:
+            return thumbnail
+
+        quality = MAX_THUMBNAIL_SIZE / len(thumbnail)
+        quality = round(quality * 95, 0)
+        print(f'Compressing image to {quality}% quality...')
+
+        image = Image.open(BytesIO(thumbnail))
+        image = image.save(image, quality)
+
+        return  image.getvalue()
 
     def generate_post_embed(uri, cid):
         embed = models.AppBskyEmbedRecord.Main(
