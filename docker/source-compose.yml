@@ -1,10 +1,14 @@
+name: bluesky-youtube-mirror
+
 services:
   bluesky-youtube-mirror:
-    image: finiteui/bluesky-youtube-mirror:latest
     container_name: ${COMPOSE_PROJECT_NAME}-container
+    build:
+      context: ..
+      dockerfile: docker/bluesky_youtube_mirror.dockerfile
     restart: unless-stopped
     env_file:
-      - .env
+      - ../.env
     volumes:
       - bluesky-youtube-mirror-data:/app/.data
 
