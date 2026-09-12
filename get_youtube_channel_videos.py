@@ -55,33 +55,58 @@ def get_youtube_channel_videos(handle, cutoff=None):
     data = data['contents']['twoColumnBrowseResultsRenderer']['tabs'][videos_index]['tabRenderer']['content']['richGridRenderer']['contents']
     for v in data:
         if 'richItemRenderer' in v:
-            #find timestamp
-            timestamp = None
-            for i, m in enumerate(v['richItemRenderer']['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['metadata']['contentMetadataViewModel']['metadataRows'][0]['metadataParts']):
-                #for some reason this is different each time, so account for it
-                if 'accessibilityLabel' in m:
-                    temp = m['accessibilityLabel']
-                elif 'text' in m:
-                    temp = m['text']['content']
+            video_data = v['richItemRenderer']
 
-                if 'ago' in temp:
-                    timestamp = get_timestamp_from_post_time(temp)
-                    break
-
+            timestamp = get_video_timestamp_from_soup(video_data)
             video = {
                 'type': 'video',
-                'id': v['richItemRenderer']['content']['lockupViewModel']['contentId'],
+                'id': video_data['content']['lockupViewModel']['contentId'],
                 'timestamp': timestamp,
-                'title:': v['richItemRenderer']['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['title']['content']
+                'title:': video_data['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['title']['content']
             }
 
+            print(video)
             videos.append(video)
 
             if cutoff:
-                if video['timestamp'] < cutoff:
-                    break
+                if video['timestamp']:
+                    if video['timestamp'] < cutoff:
+                        break
 
     return videos
+
+def get_video_timestamp_from_soup(soup):
+    #this expects the soup already trimmed down to ['contents']['twoColumnBrowseResultsRenderer']['tabs'][videos_index]['tabRenderer']['content']['richGridRenderer']['contents'][i][richItemRenderer]
+    # find timestamp, it can be in a few different places
+    timestamp = None
+
+    #trim it down some more
+    data = soup['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['metadata']['contentMetadataViewModel']['metadataRows']
+    for i in data:
+        for j in i['metadataParts']:
+            try:
+                if 'ago' in j['accessibilityLabel']:
+                    timestamp = j['accessibilityLabel']
+                    break
+            except KeyError:
+                pass
+
+            try:
+                if 'ago' in j['text']['content']:
+                    timestamp = j['text']['content']
+                    break
+            except KeyError:
+                pass
+
+        if timestamp:
+            break
+
+    if not timestamp:
+        print('Unable to determine video timestamp.')
+    else:
+        timestamp = get_timestamp_from_post_time(timestamp)
+
+    return timestamp
 
 def get_youtube_channel_shorts(handle, cutoff=None):
     videos = []
@@ -116,11 +141,13 @@ def get_youtube_channel_shorts(handle, cutoff=None):
                 'title:': item['accessibilityText']
             }
 
+            print(video)
             videos.append(video)
 
             if cutoff:
-                if video['timestamp'] < cutoff:
-                    break
+                if video['timestamp']:
+                    if video['timestamp'] < cutoff:
+                        break
 
     return videos
 
