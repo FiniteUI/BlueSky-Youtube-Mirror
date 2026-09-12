@@ -17,7 +17,7 @@ DESCRIPTION_LENGTH = 256
 NAME_SUFFIX = ' (YouTube Mirror)'
 PROCESS_INTERVAL = 300
 PROFILE_UPDATE_INTERVAL = 86400
-TEST_MODE = False
+DO_NOT_POST = False
 KEY_CACHE_COUNT = 50
 BLUESKY_POST_LENGTH = 300
 POST_SUFFIX = '(View Post)'
@@ -122,9 +122,9 @@ if not valid:
     sys.exit()
 
 #test mode is based off of the existence of this file
-if os.path.exists('test.env'):
+DO_NOT_POST = os.getenv('DO_NOT_POST', False)
+if DO_NOT_POST:
     print('---PROGRAM RUNNING IN TEST MODE---')
-    TEST_MODE = True
 
 #load registry file
 #this is for storing data between runs
@@ -158,7 +158,7 @@ if not initialized:
 
     # update profile
     update_profile(bsky, channel_details)
-    if not TEST_MODE:
+    if not DO_NOT_POST:
         generate_pinned_post(bsky, channel_details['url'], channel_details['name'])
 
     registry.setValue('initialized', True)
@@ -193,7 +193,7 @@ while True:
     else:
         last_profile_update = datetime.fromisoformat(last_profile_update)
     if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        if not TEST_MODE:
+        if not DO_NOT_POST:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
@@ -267,7 +267,7 @@ while True:
 
             #post
             print(f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}]')
-            if not TEST_MODE:
+            if not DO_NOT_POST:
                 bsky.post(contents=contents, link_embed=link_embed, images=images, links=links)
 
             add_key_to_cache(registry, c['id'])
