@@ -126,6 +126,7 @@ class BlueSky:
                 if "://" not in img_url:
                     img_url = link + img_url
 
+        thumbnail = None
         if img_url:
             print(f"GET - [{img_url}]")
             with RequestHandler() as request:
@@ -134,9 +135,11 @@ class BlueSky:
             print(response)
             response.raise_for_status()
 
-        thumbnail = BlueSky.compress_embed_thumbnail(response.content)
-        thumbnail = self.client.upload_blob(thumbnail).blob
-        thumbnail.mime_type = 'image/jpeg'
+            thumbnail = BlueSky.compress_embed_thumbnail(response.content)
+            thumbnail = self.client.upload_blob(thumbnail).blob
+            thumbnail.mime_type = 'image/jpeg'
+        else:
+            print('Unable to generate embed thumbnail.')
 
         embed = models.AppBskyEmbedExternal.Main(
             external=models.AppBskyEmbedExternal.External(
