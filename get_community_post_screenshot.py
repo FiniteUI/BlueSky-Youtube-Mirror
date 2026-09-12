@@ -10,10 +10,12 @@ BORDER_COLOR = [204, 204, 204]
 START_Y = 128
 BORDER_PROBE_Y = 12
 
+DEFAULT_TIMEOUT = 30000
+
 #content to wait for when loading the page
 CONTENT_SELECTOR = "ytd-backstage-post-thread-renderer #attachment, ytd-backstage-post-thread-renderer #content-text"
 
-def get_screenshot(url, timeout=30000):
+def get_screenshot(url, timeout=None):
     screenshot = None
 
     print(f'Generating screenshot from url [{url}]...')
@@ -27,6 +29,9 @@ def get_screenshot(url, timeout=30000):
 
             print(f'Loading url [{url}]...')
             page.goto(url, wait_until="domcontentloaded")
+
+            if not timeout:
+                timeout = DEFAULT_TIMEOUT
             page.locator(CONTENT_SELECTOR).first.wait_for(state="visible", timeout=timeout)
 
             #small wait for youtube to finish displaying items
@@ -88,10 +93,10 @@ def crop_community_post(image):
 
     return final_image.read()
 
-def get_community_post_screenshot(url):
+def get_community_post_screenshot(url, timeout=None):
     screenshot = get_screenshot(url)
 
     if screenshot:
-        screenshot = crop_community_post(screenshot)
+        screenshot = crop_community_post(screenshot, timeout=timeout)
 
     return screenshot

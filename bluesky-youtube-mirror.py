@@ -158,8 +158,9 @@ if not initialized:
 
     # update profile
     update_profile(bsky, channel_details)
+    if not TEST_MODE:
+        generate_pinned_post(bsky, channel_details['url'], channel_details['name'])
 
-    generate_pinned_post(bsky, channel_details['url'], channel_details['name'])
     registry.setValue('initialized', True)
 
 #now run update process
@@ -240,7 +241,7 @@ while True:
             else:
                 if c['item']['attachments'] is None:
                     print(f'Generating screenshot for community post: {c["id"]}...')
-                    images = [get_community_post_screenshot(c['item']['post_url'])]
+                    images = [get_community_post_screenshot(c['item']['post_url'], timeout=os.getenv('SCREENSHOT_TIMEOUT'))]
                     contents = c['item']['post_url']
                     links = [c['item']['post_url']]
                 else:
@@ -259,7 +260,7 @@ while True:
     
                     else:
                         print(f'Generating screenshot for community post: {c["id"]}...')
-                        images = [get_community_post_screenshot(c['item']['post_url'], os.getenv('SCREENSHOT_TIMEOUT', 30000))]
+                        images = [get_community_post_screenshot(c['item']['post_url'], timeout=os.getenv('SCREENSHOT_TIMEOUT'))]
                         contents = c['item']['post_url']
                         links = [c['item']['post_url']]
 
