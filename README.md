@@ -25,13 +25,13 @@ The project relies on an .env file for the credentials. See [.env.example](/.env
 - **ACCOUNT_OWNER** = BlueSky account for the bot owner.
   - This is used for attribution in the pinned post.
 
-See the full environment variable list in [.env.example]().
+See the full environment variable list in [.env.example](/.env.example).
 
 ### Running the Project
 #### Docker
-The [docker]() folder contains two compose files.
-- [docker/docker-compose.yml]() is for deploying from the DockerHub image.
-- [docker/source-compose.yml]() is for building the image and deploying from source.
+The [docker](docker) folder contains two compose files.
+- [docker-compose.yml](docker/docker-compose.yml) is for deploying from the DockerHub image.
+- [source-compose.yml](docker/source-compose.yml) is for building the image and deploying from source.
 
 Define the enviroment variables in an env file and make sure the path is correct in the env_file node of the docker compose file, then run compose.
 
