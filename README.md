@@ -1,5 +1,6 @@
 # BlueSky YouTube Mirror
 [![Docker Hub](https://img.shields.io/static/v1.svg?color=086dd7&labelColor=555555&logoColor=ffffff&label=&message=docker%20hub&logo=Docker)](https://hub.docker.com/repository/docker/finiteui/bluesky-youtube-mirror)
+
 This is a tool for mirroring a YouTube channel to a BlueSky account. Once deployed, the tool will update the BlueSky profile profile picture, banner, display name, and description to match the YouTube channel. It will also make posts when any videos, shorts, or community posts are made by the YouTube channel.
 
 > [!CAUTION]
@@ -24,13 +25,13 @@ The project relies on an .env file for the credentials. See [.env.example](/.env
 - **ACCOUNT_OWNER** = BlueSky account for the bot owner.
   - This is used for attribution in the pinned post.
 
-See the full environment variable list in [.env.example]().
+See the full environment variable list in [.env.example](/.env.example).
 
 ### Running the Project
 #### Docker
-The [docker]() folder contains two compose files.
-- [docker/docker-compose.yml]() is for deploying from the DockerHub image.
-- [docker/source-compose.yml]() is for building the image and deploying from source.
+The [docker](docker) folder contains two compose files.
+- [docker-compose.yml](docker/docker-compose.yml) is for deploying from the DockerHub image.
+- [source-compose.yml](docker/source-compose.yml) is for building the image and deploying from source.
 
 Define the enviroment variables in an env file and make sure the path is correct in the env_file node of the docker compose file, then run compose.
 
