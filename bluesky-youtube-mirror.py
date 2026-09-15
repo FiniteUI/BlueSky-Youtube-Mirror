@@ -165,7 +165,10 @@ if not initialized:
     print(channel_details)
 
     # update profile
-    update_profile(bsky, channel_details)
+    if not os.getenv('DO_NOT_UPDATE_PROFILE', False):
+        update_profile(bsky, channel_details)
+
+    #make pinned post
     if not DO_NOT_POST:
         generate_pinned_post(bsky, channel_details['url'], channel_details['name'])
 
@@ -201,7 +204,7 @@ while True:
     else:
         last_profile_update = datetime.fromisoformat(last_profile_update)
     if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        if not DO_NOT_POST:
+        if not os.getenv('DO_NOT_UPDATE_PROFILE', False):
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
