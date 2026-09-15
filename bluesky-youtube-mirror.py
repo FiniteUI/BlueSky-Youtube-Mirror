@@ -144,6 +144,7 @@ youtube_api = Api(api_key=YOUTUBE_API_KEY)
 session = registry.getValue('bluesky_session_string', None)
 bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session)
 
+print('Logging into BlueSky...')
 bsky.login()
 if not bsky.logged_in:
     print('Failed to log in to BlueSky. Trying again without session...')
@@ -204,17 +205,19 @@ while True:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
+    raw_channel_updates = []
     print('Loading channel videos...')
     channel_videos = get_all_channel_videos(channel_details['handle'], cutoff = last_process)
     print(f'{len(channel_videos)} channel videos loaded...')
+    raw_channel_updates.extend(channel_videos)
 
     print('Loading channel community posts...')
-    posts = get_youtube_community_posts(channel_details['handle'])
+    posts = get_youtube_community_posts(channel_details['handle'], cutoff = last_process)
     for post in posts:
         post['type'] = 'post'
     print(f'{len(posts)} channel community posts loaded...')
+    raw_channel_updates.extend(posts)
 
-    raw_channel_updates = channel_videos + posts
     del channel_videos
     del posts
 

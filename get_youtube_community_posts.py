@@ -6,7 +6,7 @@ from get_timestamp_from_post_time import get_timestamp_from_post_time
 
 #accepts a youtube channel handle
 #returns a list of their most recent community posts
-def get_youtube_community_posts(handle):
+def get_youtube_community_posts(handle, cutoff = None):
     # get community posts
     community_posts_url = f'https://www.youtube.com/{handle}/posts'
 
@@ -72,6 +72,11 @@ def get_youtube_community_posts(handle):
                     if not attachments:
                         attachments = None
                     post['attachments'] = attachments
+
+                    if cutoff:
+                        if post['timestamp']:
+                            if post['timestamp'] < cutoff:
+                                break
 
                     posts.append(post)
 

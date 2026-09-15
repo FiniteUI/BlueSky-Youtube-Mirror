@@ -65,13 +65,13 @@ def get_youtube_channel_videos(handle, cutoff=None):
                 'title:': video_data['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['title']['content']
             }
 
-            print(video)
-            videos.append(video)
-
             if cutoff:
                 if video['timestamp']:
                     if video['timestamp'] < cutoff:
                         break
+
+            print(video)
+            videos.append(video)
 
     return videos
 
@@ -141,13 +141,13 @@ def get_youtube_channel_shorts(handle, cutoff=None):
                 'title:': item['accessibilityText']
             }
 
-            print(video)
-            videos.append(video)
-
             if cutoff:
                 if video['timestamp']:
                     if video['timestamp'] < cutoff:
                         break
+
+            print(video)
+            videos.append(video)
 
     return videos
 
