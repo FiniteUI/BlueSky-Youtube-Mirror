@@ -35,11 +35,11 @@ def get_youtube_community_posts(handle, cutoff = None):
             for p in post_data:
                 if 'backstagePostThreadRenderer' in p.keys():
                     post = {
+                        'type': 'post',
                         'id': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId'],
+                        'timestamp': get_timestamp_from_post_time(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text']),
                         'post_text': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['contentText']['runs'][0]['text'].strip(),
-                        'post_url': f"https://www.youtube.com/post/{p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId']}",
-                        #'post_timestamp_friendly': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'],
-                        'timestamp': get_timestamp_from_post_time(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text'])
+                        'post_url': f"https://www.youtube.com/post/{p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId']}"
                     }
 
                     attachments = []
@@ -78,6 +78,7 @@ def get_youtube_community_posts(handle, cutoff = None):
                             if post['timestamp'] < cutoff:
                                 break
 
+                    print(post)
                     posts.append(post)
 
     return posts

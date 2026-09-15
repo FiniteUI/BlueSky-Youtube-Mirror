@@ -216,8 +216,6 @@ while True:
 
     print('Loading channel community posts...')
     posts = get_youtube_community_posts(channel_details['handle'], cutoff = last_process)
-    for post in posts:
-        post['type'] = 'post'
     print(f'{len(posts)} channel community posts loaded...')
     raw_channel_updates.extend(posts)
 
