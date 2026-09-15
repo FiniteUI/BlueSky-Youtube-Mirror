@@ -1,3 +1,4 @@
+import atproto_client.exceptions
 from atproto import Client, models, exceptions, IdResolver, Session, SessionEvent
 from bs4 import BeautifulSoup
 import requests
@@ -44,7 +45,7 @@ class BlueSky:
             self.message_client = self.client.with_bsky_chat_proxy().chat.bsky.convo
 
             self.error = None
-        except (exceptions.UnauthorizedError, exceptions.BadRequestError, ValueError) as e:
+        except (exceptions.UnauthorizedError, exceptions.BadRequestError, ValueError, atproto_client.exceptions.InvokeTimeoutError) as e:
             self.error = "Failed to authorize with BlueSky: " + str(e)
             print(self.error)
 
