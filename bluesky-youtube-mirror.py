@@ -132,7 +132,7 @@ if not valid:
     sys.exit()
 
 # test mode is based off of the existence of this file
-DO_NOT_POST = os.getenv('DO_NOT_POST', False)
+DO_NOT_POST = bool(os.getenv('DO_NOT_POST', 'False'))
 if DO_NOT_POST:
     print('---PROGRAM RUNNING IN TEST MODE---')
 else:
@@ -174,7 +174,7 @@ if not initialized:
     print(channel_details)
 
     # update profile
-    if not os.getenv('DO_NOT_UPDATE_PROFILE', False):
+    if not bool(os.getenv('DO_NOT_UPDATE_PROFILE', 'False')):
         update_profile(bsky, channel_details)
 
     # make pinned post
@@ -213,7 +213,7 @@ while True:
     else:
         last_profile_update = datetime.fromisoformat(last_profile_update)
     if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        if not os.getenv('DO_NOT_UPDATE_PROFILE', False):
+        if not bool(os.getenv('DO_NOT_UPDATE_PROFILE', 'False')):
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
@@ -236,7 +236,7 @@ while True:
     channel_updates = []
     for u in raw_channel_updates:
         if not u['timestamp'] or u['timestamp'] > last_process:
-            if os.getenv('IGNORE_CACHE', False) or not check_if_key_in_cache(registry, u['id']):
+            if bool(os.getenv('IGNORE_CACHE', 'False')) or not check_if_key_in_cache(registry, u['id']):
                 channel_updates.append({'timestamp': u['timestamp'], 'type': u['type'], 'item': u, 'id': u['id']})
             else:
                 print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
