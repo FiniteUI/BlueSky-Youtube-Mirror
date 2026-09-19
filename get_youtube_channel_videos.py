@@ -48,7 +48,7 @@ def get_youtube_channel_videos(handle, cutoff=None):
         return videos
 
     # grab videos tab
-    vidoes_index = None
+    videos_index = None
     for i, t in enumerate(data['contents']['twoColumnBrowseResultsRenderer']['tabs']):
         if t['tabRenderer']['title'] == 'Videos':
             videos_index = i
