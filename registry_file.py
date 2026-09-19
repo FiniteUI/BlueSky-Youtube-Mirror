@@ -1,7 +1,8 @@
 #very simple module for easily managing simple key/value json files
 
-import os
 import json
+import os
+
 
 class RegistryFile:
     def __init__(self, file='registry'):

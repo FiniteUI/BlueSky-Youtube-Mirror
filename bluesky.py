@@ -1,10 +1,12 @@
-import atproto_client.exceptions
-from atproto import Client, models, exceptions, IdResolver, Session, SessionEvent
-from bs4 import BeautifulSoup
-import requests
 from datetime import datetime
-from PIL import Image
 from io import BytesIO
+
+import atproto_client.exceptions
+import requests
+from atproto import Client, IdResolver, Session, SessionEvent, exceptions, models
+from bs4 import BeautifulSoup
+from PIL import Image
+
 from request_handler import RequestHandler
 
 MAX_THUMBNAIL_SIZE = 1000000

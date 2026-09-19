@@ -1,6 +1,7 @@
-from PIL import Image
-import numpy
 from io import BytesIO
+
+import numpy
+from PIL import Image
 from playwright.sync_api import sync_playwright
 
 #bottom gray border line

@@ -1,8 +1,11 @@
-from request_handler import RequestHandler
-from bs4 import BeautifulSoup
-import re
 import json
+import re
+
+from bs4 import BeautifulSoup
+
 from get_timestamp_from_post_time import get_timestamp_from_post_time
+from request_handler import RequestHandler
+
 
 #accepts a youtube channel handle
 #returns a list of their most recent community posts

@@ -1,5 +1,7 @@
+from datetime import UTC, datetime, timedelta
+
 import arrow
-from datetime import datetime, UTC, timedelta
+
 
 def get_timestamp_from_post_time(time_raw):
     time_clean = time_raw.replace('hour ', 'hours ')

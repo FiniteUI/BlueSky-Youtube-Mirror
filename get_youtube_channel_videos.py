@@ -1,9 +1,12 @@
-import re
-from bs4 import BeautifulSoup
 import json
-from get_timestamp_from_post_time import get_timestamp_from_post_time
+import re
 from datetime import datetime, timezone
+
+from bs4 import BeautifulSoup
+
+from get_timestamp_from_post_time import get_timestamp_from_post_time
 from request_handler import RequestHandler
+
 
 def get_youtube_data_from_url(url):
     with RequestHandler() as request:

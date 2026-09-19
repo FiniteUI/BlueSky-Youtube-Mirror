@@ -1,5 +1,6 @@
-from request_handler import RequestHandler
 from urllib import parse
+
+from request_handler import RequestHandler
 
 BASE_URL = 'https://www.youtube.com/oembed'
 
