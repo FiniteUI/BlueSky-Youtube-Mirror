@@ -4,8 +4,10 @@ ENV DOCKER=1
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY poetry.lock pyproject.toml ./
+
+RUN pip install poetry
+RUN poetry install --no-root --only main
 
 #install chromium browser for playwright
 #this is for screenshots

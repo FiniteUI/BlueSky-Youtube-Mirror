@@ -1,0 +1,31 @@
+[project]
+name = "bluesky-youtube-poster"
+version = "1.2.5"
+description = "A simple tool for mirroring YouTube posts to BlueSky."
+authors = [
+    {name = "Richard Seddon",email = "rseddoniii@gmail.com"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+    "atproto (>=0.0.72,<0.0.73)",
+    "playwright (>=1.63.0,<2.0.0)",
+    "python-dotenv (>=1.2.3,<2.0.0)",
+    "python-youtube (>=0.9.9,<0.10.0)",
+    "beautifulsoup4 (>=4.15.0,<5.0.0)",
+    "arrow (>=1.4.0,<2.0.0)",
+    "pillow (>=12.3.0,<13.0.0)",
+    "requests (>=2.34.2,<3.0.0)",
+    "numpy (>=2.5.3,<3.0.0)"
+]
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.16.8,<0.17.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
