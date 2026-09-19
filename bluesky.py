@@ -67,12 +67,12 @@ class BlueSky:
     def post(
         self,
         contents,
-        links: list = None,
-        mentions: list = None,
+        links: list | None = None,
+        mentions: list | None = None,
         link_embed=None,
-        hashtags: list = None,
-        images: list[bytes] = None,
-        images_alt_text: list = None,
+        hashtags: list | None = None,
+        images: list[bytes] | None = None,
+        images_alt_text: list | None = None,
         embed_proxy=None,
         embed_title=None,
         embed_description=None,
@@ -206,7 +206,7 @@ class BlueSky:
         embed = models.AppBskyEmbedRecord.Main(record=models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri))
         return embed
 
-    def send_message(self, recipient, message, links: list = None, mentions: list = None, embed_post=None):
+    def send_message(self, recipient, message, links: list | None = None, mentions: list | None = None, embed_post=None):
         print(f'Sending user [{recipient}] message [{message}]...')
 
         if recipient.startswith('did:'):
@@ -245,7 +245,7 @@ class BlueSky:
         except exceptions.BadRequestError as e:
             print(f'Error: {e.response.content.message}. Message not sent.')
 
-    def generate_facets(self, text: str, links: list = None, mentions: list = None, hashtags: list = None):
+    def generate_facets(self, text: str, links: list | None = None, mentions: list | None = None, hashtags: list | None = None):
         # pass list of links and mentions
         # this function will parse those from the text and generate the rich text facet
         # only handles explicit links
