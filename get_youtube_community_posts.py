@@ -37,7 +37,7 @@ def get_youtube_community_posts(handle, cutoff=None):
             ]['contents']
 
             for p in post_data:
-                if 'backstagePostThreadRenderer' in p.keys():
+                if 'backstagePostThreadRenderer' in p:
                     post = {
                         'type': 'post',
                         'id': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId'],
@@ -49,8 +49,8 @@ def get_youtube_community_posts(handle, cutoff=None):
                     }
 
                     attachments = []
-                    if 'backstageAttachment' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer'].keys():
-                        if 'postMultiImageRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
+                    if 'backstageAttachment' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']:
+                        if 'postMultiImageRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']:
                             for image in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['postMultiImageRenderer'][
                                 'images'
                             ]:
@@ -62,14 +62,14 @@ def get_youtube_community_posts(handle, cutoff=None):
                                         ]['url'],
                                     }
                                 )
-                        elif 'videoRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
+                        elif 'videoRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']:
                             url = f'https://www.youtube.com/watch?v={p["backstagePostThreadRenderer"]["post"]["backstagePostRenderer"]["backstageAttachment"]["videoRenderer"]["videoId"]}'
                             attachments.append({'type': 'video', 'url': url})
                         elif (
-                            'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys()
-                            or 'quizRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys()
+                            'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']
+                            or 'quizRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']
                         ):
-                            if 'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
+                            if 'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']:
                                 path = 'pollRenderer'
                             else:
                                 path = 'quizRenderer'
@@ -80,7 +80,7 @@ def get_youtube_community_posts(handle, cutoff=None):
                                     poll_text += '\n'
                                 poll_text += f'- {c["text"]["runs"][0]["text"]}'
 
-                                if 'image' in c.keys():
+                                if 'image' in c:
                                     attachments.append(
                                         {
                                             'type': 'image',

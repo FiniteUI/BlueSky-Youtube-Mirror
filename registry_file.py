@@ -60,7 +60,7 @@ class RegistryFile:
         # returns a value from the registry file
         registry = self.__getRegistryJSONDictionary()
 
-        if key in registry.keys():
+        if key in registry:
             return registry[key]
         else:
             return default
