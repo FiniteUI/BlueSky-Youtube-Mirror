@@ -4,6 +4,7 @@ from request_handler import RequestHandler
 
 BASE_URL = 'https://www.youtube.com/oembed'
 
+
 def get_youtube_embed_details(url):
     title = None
     description = None
@@ -22,4 +23,3 @@ def get_youtube_embed_details(url):
     thumbnail_url = response['thumbnail_url']
 
     return title, description, thumbnail_url
-

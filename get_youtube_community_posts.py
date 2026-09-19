@@ -7,9 +7,9 @@ from get_timestamp_from_post_time import get_timestamp_from_post_time
 from request_handler import RequestHandler
 
 
-#accepts a youtube channel handle
-#returns a list of their most recent community posts
-def get_youtube_community_posts(handle, cutoff = None):
+# accepts a youtube channel handle
+# returns a list of their most recent community posts
+def get_youtube_community_posts(handle, cutoff=None):
     # get community posts
     community_posts_url = f'https://www.youtube.com/{handle}/posts'
 
@@ -26,35 +26,49 @@ def get_youtube_community_posts(handle, cutoff = None):
 
         posts_index = None
         for i in range(len(page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'])):
-            #if 'expandableTabRenderer' in page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][i].keys():
-                if page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][i]['tabRenderer']['title'] == 'Posts':
-                    posts_index = i
-                    break
+            # if 'expandableTabRenderer' in page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][i].keys():
+            if page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][i]['tabRenderer']['title'] == 'Posts':
+                posts_index = i
+                break
 
         if posts_index is not None:
-            post_data = page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][posts_index]['tabRenderer']['content'][
-                'sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
+            post_data = page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][posts_index]['tabRenderer']['content']['sectionListRenderer']['contents'][0][
+                'itemSectionRenderer'
+            ]['contents']
 
             for p in post_data:
                 if 'backstagePostThreadRenderer' in p.keys():
                     post = {
                         'type': 'post',
                         'id': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId'],
-                        'timestamp': get_timestamp_from_post_time(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text']),
+                        'timestamp': get_timestamp_from_post_time(
+                            p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['publishedTimeText']['runs'][0]['text']
+                        ),
                         'post_text': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['contentText']['runs'][0]['text'].strip(),
-                        'post_url': f"https://www.youtube.com/post/{p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['postId']}"
+                        'post_url': f'https://www.youtube.com/post/{p["backstagePostThreadRenderer"]["post"]["backstagePostRenderer"]["postId"]}',
                     }
 
                     attachments = []
                     if 'backstageAttachment' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer'].keys():
                         if 'postMultiImageRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
-                            for image in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['postMultiImageRenderer']['images']:
-                                attachments.append({'type': 'image', 'url': image['backstageImageRenderer']['image']['thumbnails'][len(image['backstageImageRenderer']['image']['thumbnails']) - 1]['url']})
+                            for image in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['postMultiImageRenderer'][
+                                'images'
+                            ]:
+                                attachments.append(
+                                    {
+                                        'type': 'image',
+                                        'url': image['backstageImageRenderer']['image']['thumbnails'][
+                                            len(image['backstageImageRenderer']['image']['thumbnails']) - 1
+                                        ]['url'],
+                                    }
+                                )
                         elif 'videoRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
-                            url = f'https://www.youtube.com/watch?v={p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['videoRenderer']['videoId']}'
+                            url = f'https://www.youtube.com/watch?v={p["backstagePostThreadRenderer"]["post"]["backstagePostRenderer"]["backstageAttachment"]["videoRenderer"]["videoId"]}'
                             attachments.append({'type': 'video', 'url': url})
-                        elif 'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys() or 'quizRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
-
+                        elif (
+                            'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys()
+                            or 'quizRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys()
+                        ):
                             if 'pollRenderer' in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'].keys():
                                 path = 'pollRenderer'
                             else:
@@ -64,14 +78,33 @@ def get_youtube_community_posts(handle, cutoff = None):
                             for c in p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment'][path]['choices']:
                                 if poll_text != '':
                                     poll_text += '\n'
-                                poll_text += f'- {c['text']['runs'][0]['text']}'
+                                poll_text += f'- {c["text"]["runs"][0]["text"]}'
 
                                 if 'image' in c.keys():
-                                    attachments.append({'type': 'image', 'url': c['image']['thumbnails'][len(c['image']['thumbnails']) - 1]['url']})
+                                    attachments.append(
+                                        {
+                                            'type': 'image',
+                                            'url': c['image']['thumbnails'][len(c['image']['thumbnails']) - 1]['url'],
+                                        }
+                                    )
 
                             post['post_text'] += '\n' + poll_text
                         else:
-                            attachments.append({'type': 'image', 'url': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['backstageImageRenderer']['image']['thumbnails'][len(p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['backstageImageRenderer']['image']['thumbnails']) - 1]['url']})
+                            attachments.append(
+                                {
+                                    'type': 'image',
+                                    'url': p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['backstageImageRenderer'][
+                                        'image'
+                                    ]['thumbnails'][
+                                        len(
+                                            p['backstagePostThreadRenderer']['post']['backstagePostRenderer']['backstageAttachment']['backstageImageRenderer'][
+                                                'image'
+                                            ]['thumbnails']
+                                        )
+                                        - 1
+                                    ]['url'],
+                                }
+                            )
                     if not attachments:
                         attachments = None
                     post['attachments'] = attachments

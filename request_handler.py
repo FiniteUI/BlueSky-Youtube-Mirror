@@ -5,6 +5,7 @@ from urllib3.util import Retry
 RETRIES = Retry(total=5, backoff_factor=30, status_forcelist=[500, 502, 503, 504, 429])
 ADAPTER = HTTPAdapter(max_retries=RETRIES)
 
+
 class RequestHandler:
     def __init__(self):
         self.session = requests.Session()

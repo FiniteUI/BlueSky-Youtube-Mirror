@@ -22,7 +22,7 @@ def get_timestamp_from_post_time(time_raw):
         print(f'Failed to humanize timestamp: {time_raw}, {time_clean}')
         print(e)
 
-        #set an arbitrary time in the past to not cause issues
+        # set an arbitrary time in the past to not cause issues
         time_fixed = arrow.get(datetime.now(UTC) + timedelta(days=-100))
 
     return time_fixed.datetime

@@ -20,10 +20,11 @@ def get_youtube_data_from_url(url):
     # parse result json
     data = data[0]
     data = data.string.replace('var ytInitialData = ', '', 1)
-    data = data[:len(data) - 1]
+    data = data[: len(data) - 1]
     data = json.loads(data)
 
     return data
+
 
 def get_all_channel_videos(handle, cutoff=None):
     videos = []
@@ -38,6 +39,7 @@ def get_all_channel_videos(handle, cutoff=None):
 
     return videos
 
+
 def get_youtube_channel_videos(handle, cutoff=None):
     videos = []
 
@@ -45,7 +47,7 @@ def get_youtube_channel_videos(handle, cutoff=None):
     if not data:
         return videos
 
-    #grab videos tab
+    # grab videos tab
     vidoes_index = None
     for i, t in enumerate(data['contents']['twoColumnBrowseResultsRenderer']['tabs']):
         if t['tabRenderer']['title'] == 'Videos':
@@ -65,7 +67,7 @@ def get_youtube_channel_videos(handle, cutoff=None):
                 'type': 'video',
                 'id': video_data['content']['lockupViewModel']['contentId'],
                 'timestamp': timestamp,
-                'title:': video_data['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['title']['content']
+                'title:': video_data['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['title']['content'],
             }
 
             if cutoff:
@@ -78,12 +80,13 @@ def get_youtube_channel_videos(handle, cutoff=None):
 
     return videos
 
+
 def get_video_timestamp_from_soup(soup):
-    #this expects the soup already trimmed down to ['contents']['twoColumnBrowseResultsRenderer']['tabs'][videos_index]['tabRenderer']['content']['richGridRenderer']['contents'][i][richItemRenderer]
+    # this expects the soup already trimmed down to ['contents']['twoColumnBrowseResultsRenderer']['tabs'][videos_index]['tabRenderer']['content']['richGridRenderer']['contents'][i][richItemRenderer]
     # find timestamp, it can be in a few different places
     timestamp = None
 
-    #trim it down some more
+    # trim it down some more
     data = soup['content']['lockupViewModel']['metadata']['lockupMetadataViewModel']['metadata']['contentMetadataViewModel']['metadataRows']
     for i in data:
         for j in i['metadataParts']:
@@ -111,6 +114,7 @@ def get_video_timestamp_from_soup(soup):
 
     return timestamp
 
+
 def get_youtube_channel_shorts(handle, cutoff=None):
     videos = []
 
@@ -118,7 +122,7 @@ def get_youtube_channel_shorts(handle, cutoff=None):
     if not data:
         return videos
 
-    #grab videos tab
+    # grab videos tab
     shorts_index = None
     for i, t in enumerate(data['contents']['twoColumnBrowseResultsRenderer']['tabs']):
         if t['tabRenderer']['title'] == 'Shorts':
@@ -128,8 +132,7 @@ def get_youtube_channel_shorts(handle, cutoff=None):
     if shorts_index is None:
         return videos
 
-    data = data['contents']['twoColumnBrowseResultsRenderer']['tabs'][shorts_index]['tabRenderer']['content'][
-        'richGridRenderer']['contents']
+    data = data['contents']['twoColumnBrowseResultsRenderer']['tabs'][shorts_index]['tabRenderer']['content']['richGridRenderer']['contents']
     for v in data:
         if 'richItemRenderer' in v:
             item = v['richItemRenderer']['content']['shortsLockupViewModel']
@@ -141,7 +144,7 @@ def get_youtube_channel_shorts(handle, cutoff=None):
                 'type': 'short',
                 'id': item['onTap']['innertubeCommand']['reelWatchEndpoint']['videoId'],
                 'timestamp': timestamp,
-                'title:': item['accessibilityText']
+                'title:': item['accessibilityText'],
             }
 
             if cutoff:
@@ -153,6 +156,7 @@ def get_youtube_channel_shorts(handle, cutoff=None):
             videos.append(video)
 
     return videos
+
 
 def get_short_timestamp(video_id):
     timestamp = None
@@ -169,6 +173,3 @@ def get_short_timestamp(video_id):
         print('Could not find short timestamp.')
 
     return timestamp
-
-
-

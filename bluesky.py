@@ -11,6 +11,7 @@ from request_handler import RequestHandler
 
 MAX_THUMBNAIL_SIZE = 1000000
 
+
 class BlueSky:
     def __init__(self, username=None, password=None, session=None, did=None):
         self.client = Client()
@@ -47,8 +48,13 @@ class BlueSky:
             self.message_client = self.client.with_bsky_chat_proxy().chat.bsky.convo
 
             self.error = None
-        except (exceptions.UnauthorizedError, exceptions.BadRequestError, ValueError, atproto_client.exceptions.InvokeTimeoutError) as e:
-            self.error = "Failed to authorize with BlueSky: " + str(e)
+        except (
+            exceptions.UnauthorizedError,
+            exceptions.BadRequestError,
+            ValueError,
+            atproto_client.exceptions.InvokeTimeoutError,
+        ) as e:
+            self.error = 'Failed to authorize with BlueSky: ' + str(e)
             print(self.error)
 
         return self.logged_in
@@ -58,18 +64,37 @@ class BlueSky:
         if event in (SessionEvent.CREATE, SessionEvent.REFRESH):
             self.session = self.client.export_session_string()
 
-    def post(self, contents, links: list = None, mentions: list = None, link_embed = None, hashtags: list = None, images: list[bytes] = None, images_alt_text: list = None, embed_proxy = None, embed_title = None, embed_description = None, embed_image_link = None):
-        #handle links and mentions
+    def post(
+        self,
+        contents,
+        links: list = None,
+        mentions: list = None,
+        link_embed=None,
+        hashtags: list = None,
+        images: list[bytes] = None,
+        images_alt_text: list = None,
+        embed_proxy=None,
+        embed_title=None,
+        embed_description=None,
+        embed_image_link=None,
+    ):
+        # handle links and mentions
         facets = None
         if links is not None or mentions is not None:
             facets = self.generate_facets(contents, links, mentions, hashtags)
 
-        #images and embeds can't be posted together
-        #images take precedence
+        # images and embeds can't be posted together
+        # images take precedence
         if not images:
-            #handle embedded link (only one)
+            # handle embedded link (only one)
             if link_embed is not None:
-                link_embed = self.get_link_embed_details(link_embed, embed_proxy=embed_proxy, embed_title=embed_title, embed_description=embed_description, embed_image_link=embed_image_link)
+                link_embed = self.get_link_embed_details(
+                    link_embed,
+                    embed_proxy=embed_proxy,
+                    embed_title=embed_title,
+                    embed_description=embed_description,
+                    embed_image_link=embed_image_link,
+                )
 
         if images:
             if not images_alt_text:
@@ -82,9 +107,21 @@ class BlueSky:
                 aspect_ratios.append(ar)
 
             if len(images) == 1:
-                post = self.client.send_image(contents, image=images[0], image_alt=images_alt_text[0], image_aspect_ratio=aspect_ratios[0], facets=facets)
+                post = self.client.send_image(
+                    contents,
+                    image=images[0],
+                    image_alt=images_alt_text[0],
+                    image_aspect_ratio=aspect_ratios[0],
+                    facets=facets,
+                )
             else:
-                post = self.client.send_images(contents, images=images, image_alts=images_alt_text, image_aspect_ratios=aspect_ratios, facets=facets)
+                post = self.client.send_images(
+                    contents,
+                    images=images,
+                    image_alts=images_alt_text,
+                    image_aspect_ratios=aspect_ratios,
+                    facets=facets,
+                )
         else:
             post = self.client.send_post(contents, facets=facets, embed=link_embed)
 
@@ -102,7 +139,7 @@ class BlueSky:
             description = embed_description
             img_url = embed_image_link
         else:
-            print(f"GET - [{link}]")
+            print(f'GET - [{link}]')
             if embed_proxy:
                 text = get_response_from_embed_proxy(link, embed_proxy)
             else:
@@ -113,24 +150,24 @@ class BlueSky:
                 response.raise_for_status()
                 text = response.text
 
-            data = BeautifulSoup(text, "html.parser")
+            data = BeautifulSoup(text, 'html.parser')
 
-            title_tag = data.find("meta", property="og:title")
+            title_tag = data.find('meta', property='og:title')
             if title_tag:
                 title = title_tag['content']
 
-            description_tag = data.find("meta", property="og:description")
+            description_tag = data.find('meta', property='og:description')
             if description_tag:
-                description = description_tag["content"]
-        
-            image_tag = data.find("meta", property="og:image")
+                description = description_tag['content']
+
+            image_tag = data.find('meta', property='og:image')
             if image_tag:
-                img_url = image_tag["content"]
-                if "://" not in img_url:
+                img_url = image_tag['content']
+                if '://' not in img_url:
                     img_url = link + img_url
 
         if img_url:
-            print(f"GET - [{img_url}]")
+            print(f'GET - [{img_url}]')
             with RequestHandler() as request:
                 response = request.get(img_url)
                 response.raise_for_status()
@@ -149,7 +186,7 @@ class BlueSky:
                 thumb=thumbnail,
             )
         )
-        
+
         return embed
 
     def compress_embed_thumbnail(thumbnail: bytes):
@@ -163,24 +200,22 @@ class BlueSky:
         image = Image.open(BytesIO(thumbnail))
         image = image.save(image, quality)
 
-        return  image.getvalue()
+        return image.getvalue()
 
     def generate_post_embed(uri, cid):
-        embed = models.AppBskyEmbedRecord.Main(
-            record = models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri)
-            )
+        embed = models.AppBskyEmbedRecord.Main(record=models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri))
         return embed
 
-    def send_message(self, recipient, message, links: list=None, mentions: list=None, embed_post = None):
+    def send_message(self, recipient, message, links: list = None, mentions: list = None, embed_post=None):
         print(f'Sending user [{recipient}] message [{message}]...')
 
         if recipient.startswith('did:'):
             recipient_id = recipient
         else:
             recipient_id = self.get_did_from_handle(recipient)
-        
+
         if recipient_id is None:
-            print(f"Error: Unable to find user [{recipient}]")
+            print(f'Error: Unable to find user [{recipient}]')
             return
 
         try:
@@ -190,8 +225,8 @@ class BlueSky:
         except exceptions.BadRequestError as e:
             print(f'Error: {e.response.content.message}. Message not sent.')
             return
-            
-        #handle links and mentions
+
+        # handle links and mentions
         facets = None
         if links is not None or mentions is not None:
             facets = self.generate_facets(message, links, mentions)
@@ -204,23 +239,19 @@ class BlueSky:
             self.message_client.send_message(
                 models.ChatBskyConvoSendMessage.Data(
                     convo_id=chat.id,
-                    message=models.ChatBskyConvoDefs.MessageInput(
-                        text=message,
-                        facets=facets,
-                        embed = embed
-                    ),
+                    message=models.ChatBskyConvoDefs.MessageInput(text=message, facets=facets, embed=embed),
                 )
             )
         except exceptions.BadRequestError as e:
             print(f'Error: {e.response.content.message}. Message not sent.')
 
-    def generate_facets(self, text: str, links: list=None, mentions: list=None, hashtags: list=None):
-        #pass list of links and mentions
-        #this function will parse those from the text and generate the rich text facet
-        #only handles explicit links
+    def generate_facets(self, text: str, links: list = None, mentions: list = None, hashtags: list = None):
+        # pass list of links and mentions
+        # this function will parse those from the text and generate the rich text facet
+        # only handles explicit links
         facets = []
 
-        #links can be passed as a list of urls or a list of tuples of urls and text
+        # links can be passed as a list of urls or a list of tuples of urls and text
         if links is not None:
             if type(links) is not list:
                 links = [links]
@@ -266,16 +297,16 @@ class BlueSky:
             facets = None
 
         return facets
-    
+
     def get_did_from_handle(self, handle):
         return self.id_resolver.handle.resolve(handle)
-    
+
     def get_handle_from_did(self, did):
         return self.id_resolver.did.resolve(did).also_known_as[0].replace('at://', '')
 
     def get_did(self):
         return self.client.me.did
-    
+
     def get_mentions(self, limit=100, cutoff_timestamp=None):
         params = models.AppBskyNotificationListNotifications.ParamsDict(limit=limit, reasons=['mention'])
         mentions = self.client.app.bsky.notification.list_notifications(params).notifications
@@ -287,16 +318,16 @@ class BlueSky:
                     mentions.pop(i)
 
         return mentions
-    
+
     def get_post_from_uri(self, uri):
         did, key = BlueSky.get_post_uri_details(uri)
         post = self.client.get_post(key, did)
-        
+
         return post
 
     def get_parent_post_from_reply(self, reply):
         return self.get_post_from_uri(reply.reply.parent.uri)
-    
+
     def get_post_url_from_post(self, post):
         did, key = BlueSky.get_post_uri_details(post.uri)
         handle = self.get_handle_from_did(did)
@@ -306,9 +337,9 @@ class BlueSky:
 
     def build_post_url(author, key):
         return f'https://bsky.app/profile/{author}/post/{key}'
-        
+
     def get_post_uri_details(uri):
-        #get post key and user from uri
+        # get post key and user from uri
         uri_split = uri.split('/')
         did = uri_split[2]
         key = uri_split[4]
@@ -320,7 +351,7 @@ class BlueSky:
         rkey = url_split[len(url_split) - 1]
         handle = url_split[4]
         return self.client.get_post(rkey, handle).uri
-    
+
     def get_post_url_from_uri(self, uri):
         post = self.get_post_from_uri(uri)
         return self.get_post_url_from_post(post)
@@ -333,7 +364,13 @@ class BlueSky:
             return
 
         current_profile = self.get_profile(self.get_did())
-        record = models.AppBskyActorProfile.Record(display_name=current_profile.display_name, description=current_profile.description, avatar=current_profile.avatar, banner=current_profile.banner, pinned_post=current_profile.pinned_post)
+        record = models.AppBskyActorProfile.Record(
+            display_name=current_profile.display_name,
+            description=current_profile.description,
+            avatar=current_profile.avatar,
+            banner=current_profile.banner,
+            pinned_post=current_profile.pinned_post,
+        )
 
         if display_name:
             record.display_name = display_name
@@ -347,30 +384,22 @@ class BlueSky:
             record.pinned_post = self.get_post_from_uri(pinned_post_uri)
 
         self.client.com.atproto.repo.put_record(
-            models.ComAtprotoRepoPutRecord.Data(
-                repo=self.get_did(),
-                record=record,
-                rkey='self',
-                collection=models.ids.AppBskyActorProfile
-            )
+            models.ComAtprotoRepoPutRecord.Data(repo=self.get_did(), record=record, rkey='self', collection=models.ids.AppBskyActorProfile)
         )
 
     def pin_post(self, uri):
         return self.update_profile(pinned_post_uri=uri)
-    
+
+
 def get_response_from_embed_proxy(url, proxy):
-    headers = {"Content-Type": "application/json"}
-    data = {
-        "cmd": "request.get",
-        "url": url,
-        "maxTimeout": 180000,
-        "disableMedia": True
-    }
+    headers = {'Content-Type': 'application/json'}
+    data = {'cmd': 'request.get', 'url': url, 'maxTimeout': 180000, 'disableMedia': True}
 
     response = requests.post(proxy, headers=headers, json=data)
     print(f'Proxy response: {response}')
 
     return response.json()['solution']['response']
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     print('This module should not be run directly.')
