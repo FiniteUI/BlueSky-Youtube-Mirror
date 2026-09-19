@@ -416,7 +416,8 @@ select = [
     "TRY203",
     "TRY401",
 ]
-ignore = []
+ignore = ["E501"]
+extend-safe-fixes = ["SIM118"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
