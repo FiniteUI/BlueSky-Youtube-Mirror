@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bs4 import BeautifulSoup
 
@@ -167,7 +167,7 @@ def get_short_timestamp(video_id):
 
     try:
         timestamp = data['contents']['twoColumnWatchNextResults']['results']['results']['contents'][0]['videoPrimaryInfoRenderer']['dateText']['simpleText']
-        timestamp = datetime.strptime(timestamp, '%b %d, %Y').replace(tzinfo=timezone.utc)
+        timestamp = datetime.strptime(timestamp, '%b %d, %Y').replace(tzinfo=UTC)
 
     except KeyError:
         print('Could not find short timestamp.')
