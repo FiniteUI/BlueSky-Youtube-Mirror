@@ -1,9 +1,11 @@
-from datetime import datetime
+import asyncio
+from datetime import UTC, datetime
 from io import BytesIO
 
-import atproto_client.exceptions
+import favicon
 import requests
 from atproto import Client, IdResolver, Session, SessionEvent, exceptions, models
+from atproto_client.models.utils import create_strong_ref
 from bs4 import BeautifulSoup
 from PIL import Image
 
@@ -13,51 +15,65 @@ MAX_THUMBNAIL_SIZE = 1000000
 
 
 class BlueSky:
-    def __init__(self, username=None, password=None, session=None, did=None):
-        self.client = Client()
-        self.id_resolver = IdResolver()
-        self.message_client = None
-
+    def __init__(self, username=None, password=None, session=None, did=None, oauth_client=None):
         self.username = username
         self.password = password
         self.did = did
         self.session = session
+        self.oauth_client = oauth_client
+
         self.logged_in = False
         self.error = None
         self.handle = None
+        self.message_client = None
+
+        self.client = Client()
+        self.id_resolver = IdResolver()
 
     def login(self):
         try:
-            if self.session is not None:
+            if self.oauth_client is not None:
+                self.oauth_session = asyncio.run(self.oauth_client.session_store.get_session(self.did))
+                if not self.oauth_session:
+                    raise ValueError(f'No active OAuth session found for did {self.did}')
+                self.active_oauth_session = asyncio.run(self.oauth_client.refresh_session(self.oauth_session))
+            elif self.session is not None:
                 self.client.login(session_string=self.session)
             else:
                 if self.did is not None:
                     self.client.login(self.did, self.password)
                 else:
                     self.client.login(self.username, self.password)
-
-            self.did = self.get_did()
-            self.handle = self.get_handle_from_did(self.did)
-            self.session = self.client.export_session_string()
-
-            print(f'Successful BlueSky login as user {self.handle}')
-
-            self.logged_in = True
-            self.client.on_session_change(self.on_session_change)
-
-            self.message_client = self.client.with_bsky_chat_proxy().chat.bsky.convo
-
-            self.error = None
         except (
             exceptions.UnauthorizedError,
             exceptions.BadRequestError,
+            exceptions.TimeoutError,
             ValueError,
-            atproto_client.exceptions.InvokeTimeoutError,
         ) as e:
             self.error = 'Failed to authorize with BlueSky: ' + str(e)
             print(self.error)
+            return False
+
+        self.post_login()
+
+        print(f'Successful BlueSky login as user {self.handle}')
+        self.logged_in = True
+        self.error = None
 
         return self.logged_in
+
+    def post_login(self):
+        if self.did is None:
+            self.did = self.get_did()
+
+        if self.handle is None:
+            self.handle = self.get_handle_from_did(self.did)
+
+        if self.oauth_client is None:
+            self.session = self.client.export_session_string()
+            self.client.on_session_change(self.on_session_change)
+
+        self.message_client = self.client.with_bsky_chat_proxy().chat.bsky.convo
 
     def on_session_change(self, event: SessionEvent, session: Session):
         print(f'Session Change for user {self.handle}')
@@ -67,21 +83,17 @@ class BlueSky:
     def post(
         self,
         contents,
-        links: list | None = None,
-        mentions: list | None = None,
         link_embed=None,
-        hashtags: list | None = None,
         images: list[bytes] | None = None,
         images_alt_text: list | None = None,
-        embed_proxy=None,
         embed_title=None,
         embed_description=None,
         embed_image_link=None,
     ):
+        uri = None
+
         # handle links and mentions
-        facets = None
-        if links is not None or mentions is not None:
-            facets = self.generate_facets(contents, links, mentions, hashtags)
+        facets = self.client.detect_facets(contents)
 
         # images and embeds can't be posted together
         # images take precedence
@@ -90,7 +102,6 @@ class BlueSky:
             if link_embed is not None:
                 link_embed = self.get_link_embed_details(
                     link_embed,
-                    embed_proxy=embed_proxy,
                     embed_title=embed_title,
                     embed_description=embed_description,
                     embed_image_link=embed_image_link,
@@ -123,11 +134,43 @@ class BlueSky:
                     facets=facets,
                 )
         else:
-            post = self.client.send_post(contents, facets=facets, embed=link_embed)
+            if self.oauth_client is None:
+                post = self.client.send_post(contents, facets=facets, embed=link_embed)
+                uri = post.uri
+            else:
+                post = self.send_post_oauth(contents, facets, link_embed)
+                uri = post['uri']
 
-        return post.uri
+        return uri
 
-    def get_link_embed_details(self, link, embed_proxy=None, embed_title=None, embed_description=None, embed_image_link=None):
+    def send_post_oauth(self, contents, facets, embed):
+        now = datetime.now(UTC).isoformat().replace('+00:00', 'Z')
+
+        data = {'$type': 'app.bsky.feed.post', 'text': contents, 'createdAt': now}
+
+        if facets:
+            data['facets'] = [models.get_model_as_dict(f) for f in facets]
+
+        if embed:
+            data['embed'] = models.get_model_as_dict(embed)
+
+        url = f'{self.active_oauth_session.pds_url.rstrip("/")}/xrpc/com.atproto.repo.createRecord'
+        body = {'repo': self.did, 'collection': 'app.bsky.feed.post', 'record': data}
+
+        print(f'POST - [{url}]')
+        response = asyncio.run(self.oauth_client.make_authenticated_request(session=self.active_oauth_session, method='POST', url=url, json=body))
+        print(response)
+        response.raise_for_status()
+
+        return response.json()
+
+    def get_link_embed_details(
+        self,
+        link,
+        embed_title=None,
+        embed_description=None,
+        embed_image_link=None,
+    ):
         print(f'Generating embed for link [{link}]...')
         title = ''
         description = ''
@@ -140,15 +183,12 @@ class BlueSky:
             img_url = embed_image_link
         else:
             print(f'GET - [{link}]')
-            if embed_proxy:
-                text = get_response_from_embed_proxy(link, embed_proxy)
-            else:
-                with RequestHandler() as request:
-                    response = request.get(link)
+            with RequestHandler() as request:
+                response = request.get(link)
 
-                print(response)
-                response.raise_for_status()
-                text = response.text
+            print(response)
+            response.raise_for_status()
+            text = response.text
 
             data = BeautifulSoup(text, 'html.parser')
 
@@ -170,11 +210,16 @@ class BlueSky:
             print(f'GET - [{img_url}]')
             with RequestHandler() as request:
                 response = request.get(img_url)
-                response.raise_for_status()
+
             print(response)
+            response.raise_for_status()
 
             thumbnail = BlueSky.compress_embed_thumbnail(response.content)
-            thumbnail = self.client.upload_blob(thumbnail).blob
+            if self.oauth_client is None:
+                thumbnail = self.client.upload_blob(thumbnail).blob
+            else:
+                thumbnail = self.upload_blob_oauth(thumbnail)
+
         else:
             print('Unable to generate embed thumbnail.')
 
@@ -202,11 +247,35 @@ class BlueSky:
 
         return image.getvalue()
 
+    def upload_blob_oauth(self, data, content_type='image/jpeg'):
+        # manually upload blob since python sdk doesn't support oauth yet
+        url = f'{self.active_oauth_session.pds_url.rstrip("/")}/xrpc/com.atproto.repo.uploadBlob'
+
+        print(f'POST - [{url}]')
+        response = asyncio.run(
+            self.oauth_client.make_authenticated_request(
+                session=self.active_oauth_session,
+                method='POST',
+                url=url,
+                content=data,
+                headers={'Content-Type': content_type, 'Content-Length': str(len(data))},
+            )
+        )
+        print(response)
+        response.raise_for_status()
+
+        return response.json()['blob']
+
     def generate_post_embed(uri, cid):
         embed = models.AppBskyEmbedRecord.Main(record=models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri))
         return embed
 
-    def send_message(self, recipient, message, links: list | None = None, mentions: list | None = None, embed_post=None):
+    def send_message(
+        self,
+        recipient,
+        message,
+        embed_post=None,
+    ):
         print(f'Sending user [{recipient}] message [{message}]...')
 
         if recipient.startswith('did:'):
@@ -227,9 +296,7 @@ class BlueSky:
             return
 
         # handle links and mentions
-        facets = None
-        if links is not None or mentions is not None:
-            facets = self.generate_facets(message, links, mentions)
+        facets = self.client.detect_facets(message)
 
         embed = None
         if embed_post is not None:
@@ -244,59 +311,6 @@ class BlueSky:
             )
         except exceptions.BadRequestError as e:
             print(f'Error: {e.response.content.message}. Message not sent.')
-
-    def generate_facets(self, text: str, links: list | None = None, mentions: list | None = None, hashtags: list | None = None):
-        # pass list of links and mentions
-        # this function will parse those from the text and generate the rich text facet
-        # only handles explicit links
-        facets = []
-
-        # links can be passed as a list of urls or a list of tuples of urls and text
-        if links is not None:
-            if type(links) is not list:
-                links = [links]
-            for l in links:
-                if type(l) is tuple:
-                    link_text = l[1]
-                    link_url = l[0]
-                else:
-                    link_text = l
-                    link_url = l
-
-                start = text.encode().find(link_text.encode())
-                if start != -1:
-                    link = models.AppBskyRichtextFacet.Link(uri=link_url)
-                    position = models.AppBskyRichtextFacet.ByteSlice(byte_start=start, byte_end=start + len(link_text))
-                    facet = models.AppBskyRichtextFacet.Main(features=[link], index=position)
-                    facets.append(facet)
-
-        if mentions is not None:
-            if type(mentions) is not list:
-                mentions = [mentions]
-            for m in mentions:
-                mention_full = f'@{m}'
-                start = text.encode().find(mention_full.encode())
-                if start != -1:
-                    mention_id = self.get_did_from_handle(m)
-                    if mention_id is not None:
-                        mention = models.AppBskyRichtextFacet.Mention(did=mention_id)
-                        position = models.AppBskyRichtextFacet.ByteSlice(byte_start=start, byte_end=start + len(mention_full))
-                        facet = models.AppBskyRichtextFacet.Main(features=[mention], index=position)
-                        facets.append(facet)
-
-        if hashtags is not None:
-            for h in hashtags:
-                start = text.encode().find(h.encode())
-                if start != -1:
-                    hashtag = models.AppBskyRichtextFacet.Tag(tag=h.replace('#', ''))
-                    position = models.AppBskyRichtextFacet.ByteSlice(byte_start=start, byte_end=start + len(h))
-                    facet = models.AppBskyRichtextFacet.Main(features=[hashtag], index=position)
-                    facets.append(facet)
-
-        if facets == []:
-            facets = None
-
-        return facets
 
     def get_did_from_handle(self, handle):
         return self.id_resolver.handle.resolve(handle)
@@ -359,8 +373,8 @@ class BlueSky:
     def get_profile(self, did):
         return self.client.app.bsky.actor.profile.get(did, 'self').value
 
-    def update_profile(self, display_name=None, description=None, avatar=None, banner=None, pinned_post_uri=None):
-        if display_name is None and description is None and avatar is None and banner is None and pinned_post_uri is None:
+    def update_profile(self, display_name=None, description=None, avatar=None, banner=None, pinned_post_uri=None, links: list | None = None):
+        if display_name is None and description is None and avatar is None and banner is None and pinned_post_uri is None and links is None:
             return
 
         current_profile = self.get_profile(self.get_did())
@@ -370,6 +384,7 @@ class BlueSky:
             avatar=current_profile.avatar,
             banner=current_profile.banner,
             pinned_post=current_profile.pinned_post,
+            links=current_profile.links,
         )
 
         if display_name:
@@ -382,23 +397,95 @@ class BlueSky:
             record.banner = self.client.upload_blob(banner).blob
         if pinned_post_uri:
             record.pinned_post = self.get_post_from_uri(pinned_post_uri)
+        if links:
+            record.links = self.generate_profile_link_records(links)
 
         self.client.com.atproto.repo.put_record(
-            models.ComAtprotoRepoPutRecord.Data(repo=self.get_did(), record=record, rkey='self', collection=models.ids.AppBskyActorProfile)
+            models.ComAtprotoRepoPutRecord.Data(
+                repo=self.get_did(),
+                record=record,
+                rkey='self',
+                collection=models.ids.AppBskyActorProfile,
+            )
         )
+
+    def generate_profile_link_records(self, links: list):
+        # generate profile link records from a list of links
+        # links should be a list of tuples (url, title)
+
+        existing_links = self.get_profile_links()
+
+        final_links = []
+        for link in links:
+            # check if link already exists
+            existing_link = None
+            for l in existing_links:
+                if link[0].lower().removesuffix('/') == l.value.url.lower().removesuffix('/') and link[1].lower() == l.value.title.lower():
+                    existing_link = l
+                    break
+
+            if existing_link:
+                final_links.append(existing_link)
+                continue
+
+            # create the link record
+            icon = self.get_link_icon(link[0])
+            link_record = models.AppBskyActorLink.Record(created_at=datetime.now(UTC).isoformat(), url=link[0], title=link[1], icon=icon)
+
+            link_record = self.client.com.atproto.repo.create_record(
+                models.ComAtprotoRepoCreateRecord.Data(repo=self.get_did(), collection='app.bsky.actor.link', record=link_record)
+            )
+            strong_ref = create_strong_ref(link_record)
+            final_links.append(strong_ref)
+
+        return final_links
+
+    def get_profile_links(self):
+        profile = self.get_profile(self.get_did())
+        links = []
+
+        if profile.links:
+            for l in profile.links:
+                link_record = self.client.com.atproto.repo.get_record(
+                    models.ComAtprotoRepoGetRecord.Params(repo=self.get_did(), collection='app.bsky.actor.link', rkey=l.uri.split('/')[-1])
+                )
+                links.append(link_record)
+
+        return links
+
+    def get_link_icon(self, url):
+        # grab icon link
+        icon = favicon.get(url)
+        if not icon:
+            print(f'Failed to retreive icon for link: {url}')
+            return None
+
+        # now grab actual image
+        icon = icon[0].url
+        print(f'GET - [{icon}]')
+        response = requests.get(icon)
+        print(response)
+        response.raise_for_status()
+
+        image = BlueSky.convert_icon_to_png(response.content)
+        if self.oauth_client is None:
+            icon_blob = self.client.upload_blob(image).blob
+        else:
+            icon_blob = self.upload_blob_oauth(image)
+
+        return icon_blob
+
+    @staticmethod
+    def convert_icon_to_png(bytes):
+        image = Image.open(BytesIO(bytes))
+        output = BytesIO()
+
+        image.save(output, format='PNG')
+
+        return output.getvalue()
 
     def pin_post(self, uri):
         return self.update_profile(pinned_post_uri=uri)
-
-
-def get_response_from_embed_proxy(url, proxy):
-    headers = {'Content-Type': 'application/json'}
-    data = {'cmd': 'request.get', 'url': url, 'maxTimeout': 180000, 'disableMedia': True}
-
-    response = requests.post(proxy, headers=headers, json=data)
-    print(f'Proxy response: {response}')
-
-    return response.json()['solution']['response']
 
 
 if __name__ == '__main__':
