@@ -252,7 +252,6 @@ while True:
 
             contents = ''
             images = None
-            links = None
             link_embed = None
 
             embed_title = None
@@ -268,7 +267,6 @@ while True:
                     print(f'Generating screenshot for community post: {c["id"]}...')
                     images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
                     contents = c['item']['post_url']
-                    links = [c['item']['post_url']]
                 else:
                     if c['item']['attachments'][0]['type'] == 'video':
                         contents = c['item']['post_text']
@@ -281,20 +279,20 @@ while True:
                         contents += POST_SUFFIX
 
                         # link value, link text
+                        ### NEED TO FIX THIS ###
                         links = [(c['item']['post_url'], POST_SUFFIX.strip('(').strip(')'))]
 
                     else:
                         print(f'Generating screenshot for community post: {c["id"]}...')
                         images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
                         contents = c['item']['post_url']
-                        links = [c['item']['post_url']]
 
             if c['type'] in ('video', 'short'):
                 embed_title, embed_description, embed_image_url = get_youtube_embed_details(link_embed)
 
             # post
             print(
-                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}], Title-[{embed_title}, Description-[{embed_description}], Image-[{embed_image_url}]'
+                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Title-[{embed_title}, Description-[{embed_description}], Image-[{embed_image_url}]'
             )
             if not DO_NOT_POST:
                 print(f'Posting update {c["id"]}...')
@@ -302,7 +300,6 @@ while True:
                     contents=contents,
                     link_embed=link_embed,
                     images=images,
-                    links=links,
                     embed_title=embed_title,
                     embed_description=embed_description,
                     embed_image_link=embed_image_url,
