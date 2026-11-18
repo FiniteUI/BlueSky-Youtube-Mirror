@@ -17,7 +17,8 @@ dependencies = [
     "arrow (>=1.4.0,<2.0.0)",
     "pillow (>=12.3.0,<13.0.0)",
     "requests (>=2.34.2,<3.0.0)",
-    "numpy (>=2.5.3,<3.0.0)"
+    "numpy (>=2.5.3,<3.0.0)",
+    "favicon (>=0.7.0,<0.8.0)"
 ]
 
 [dependency-groups]
