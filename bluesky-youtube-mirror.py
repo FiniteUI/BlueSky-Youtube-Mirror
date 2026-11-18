@@ -60,7 +60,7 @@ def update_profile(bluesky_client, channel_details):
     print(f'Generated description: {description}')
 
     print('Updating BlueSky profile...')
-    bluesky_client.update_profile(channel_name, description, avatar, banner)
+    bluesky_client.update_profile(channel_name, description, avatar, banner, links = [(channel_details['url'], channel_details['name'])])
 
 
 def generate_pinned_post(bluesky_client, channel_url, channel_name):
