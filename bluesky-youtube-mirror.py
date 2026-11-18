@@ -131,12 +131,17 @@ if not valid:
     print('Invalid configuration. Exiting...')
     sys.exit()
 
-# test mode is based off of the existence of this file
-DO_NOT_POST = bool(os.getenv('DO_NOT_POST', 'False'))
+DO_NOT_POST = False
+if str(os.getenv('DO_NOT_POST')).lower() == 'true' or str(os.getenv('DO_NOT_POST')).lower() == '1':
+    DO_NOT_POST = True
 if DO_NOT_POST:
     print('---PROGRAM RUNNING IN TEST MODE---')
 else:
     print('---PROGRAM RUNNING IN LIVE MODE---')
+
+DO_NOT_UPDATE_PROFILE = False
+if str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == 'true' or str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == '1':
+    DO_NOT_UPDATE_PROFILE = True
 
 SCREENSHOT_TIMEOUT = os.getenv('SCREENSHOT_TIMEOUT')
 if SCREENSHOT_TIMEOUT:
@@ -174,7 +179,7 @@ if not initialized:
     print(channel_details)
 
     # update profile
-    if not bool(os.getenv('DO_NOT_UPDATE_PROFILE', 'False')):
+    if not DO_NOT_UPDATE_PROFILE:
         update_profile(bsky, channel_details)
 
     # make pinned post
@@ -213,7 +218,7 @@ while True:
     else:
         last_profile_update = datetime.fromisoformat(last_profile_update)
     if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        if not bool(os.getenv('DO_NOT_UPDATE_PROFILE', 'False')):
+        if not DO_NOT_UPDATE_PROFILE:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
