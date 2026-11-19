@@ -11,8 +11,8 @@ RUN poetry install --no-root --only main
 
 #install chromium browser for playwright
 #this is for screenshots
-RUN playwright install chromium && \
-    playwright install-deps chromium
+RUN poetry run playwright install chromium && \
+    poetry run playwright install-deps chromium
 
 COPY *.py .
 
