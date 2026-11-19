@@ -258,6 +258,7 @@ while True:
             contents = ''
             images = None
             link_embed = None
+            manual_links = None
 
             embed_title = None
             embed_description = None
@@ -283,9 +284,8 @@ while True:
                             contents = contents[0 : 300 - len(POST_SUFFIX) - 1 - 3] + '...'
                         contents += POST_SUFFIX
 
-                        # link value, link text
-                        ### NEED TO FIX THIS ###
-                        links = [(c['item']['post_url'], POST_SUFFIX.strip('(').strip(')'))]
+                        # link text, link url
+                        manual_links = [('View Post', c['item']['post_url'])]
 
                     else:
                         print(f'Generating screenshot for community post: {c["id"]}...')
@@ -297,7 +297,7 @@ while True:
 
             # post
             print(
-                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Title-[{embed_title}, Description-[{embed_description}], Image-[{embed_image_url}]'
+                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Title-[{embed_title}, Description-[{embed_description}], Manual Links-[{manual_links}], Image-[{embed_image_url}]'
             )
             if not DO_NOT_POST:
                 print(f'Posting update {c["id"]}...')
@@ -308,6 +308,7 @@ while True:
                     embed_title=embed_title,
                     embed_description=embed_description,
                     embed_image_link=embed_image_url,
+                    manual_links=manual_links
                 )
 
             add_key_to_cache(registry, c['id'])

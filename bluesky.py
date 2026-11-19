@@ -89,11 +89,20 @@ class BlueSky:
         embed_title=None,
         embed_description=None,
         embed_image_link=None,
+        manual_links: list[tuple] | None = None
     ):
         uri = None
 
         # handle links and mentions
         facets = self.client.detect_facets(contents)
+
+        # handle manual links
+        # manual links should be a list of tuples (link_text, link_url)
+        if manual_links:
+            for link in manual_links:
+                link_facet = self.generate_manual_link_facet_from_match(contents, link[0], link[1])
+                if link_facet:
+                    facets.append(link_facet)
 
         # images and embeds can't be posted together
         # images take precedence
@@ -491,6 +500,19 @@ class BlueSky:
         embed = models.AppBskyEmbedRecord.Main(record=models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri))
         return embed
 
+    @staticmethod
+    def generate_manual_link_facet_from_match(full_text, link_text, link_url):
+        full_text_encoded = full_text.encode()
+        link_text_encoded = link_text.encode()
+
+        facet = None
+        start = full_text_encoded.find(link_text_encoded)
+        if start != -1:
+            link = models.AppBskyRichtextFacet.Link(uri=link_url)
+            position = models.AppBskyRichtextFacet.ByteSlice(byte_start = start, byte_end = start + len(link_text_encoded))
+            facet = models.AppBskyRichtextFacet.Main(features=[link], index=position)
+
+        return facet
 
 if __name__ == '__main__':
     print('This module should not be run directly.')
