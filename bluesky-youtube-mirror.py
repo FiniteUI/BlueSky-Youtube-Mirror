@@ -60,7 +60,7 @@ def update_profile(bluesky_client, channel_details):
     print(f'Generated description: {description}')
 
     print('Updating BlueSky profile...')
-    bluesky_client.update_profile(channel_name, description, avatar, banner)
+    bluesky_client.update_profile(channel_name, description, avatar, banner, links = [(channel_details['url'], channel_details['name'])])
 
 
 def generate_pinned_post(bluesky_client, channel_url, channel_name):
@@ -131,12 +131,17 @@ if not valid:
     print('Invalid configuration. Exiting...')
     sys.exit()
 
-# test mode is based off of the existence of this file
-DO_NOT_POST = bool(os.getenv('DO_NOT_POST', 'False'))
+DO_NOT_POST = False
+if str(os.getenv('DO_NOT_POST')).lower() == 'true' or str(os.getenv('DO_NOT_POST')).lower() == '1':
+    DO_NOT_POST = True
 if DO_NOT_POST:
     print('---PROGRAM RUNNING IN TEST MODE---')
 else:
     print('---PROGRAM RUNNING IN LIVE MODE---')
+
+DO_NOT_UPDATE_PROFILE = False
+if str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == 'true' or str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == '1':
+    DO_NOT_UPDATE_PROFILE = True
 
 SCREENSHOT_TIMEOUT = os.getenv('SCREENSHOT_TIMEOUT')
 if SCREENSHOT_TIMEOUT:
@@ -174,7 +179,7 @@ if not initialized:
     print(channel_details)
 
     # update profile
-    if not bool(os.getenv('DO_NOT_UPDATE_PROFILE', 'False')):
+    if not DO_NOT_UPDATE_PROFILE:
         update_profile(bsky, channel_details)
 
     # make pinned post
@@ -213,7 +218,7 @@ while True:
     else:
         last_profile_update = datetime.fromisoformat(last_profile_update)
     if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        if not bool(os.getenv('DO_NOT_UPDATE_PROFILE', 'False')):
+        if not DO_NOT_UPDATE_PROFILE:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
@@ -252,8 +257,8 @@ while True:
 
             contents = ''
             images = None
-            links = None
             link_embed = None
+            manual_links = None
 
             embed_title = None
             embed_description = None
@@ -268,7 +273,6 @@ while True:
                     print(f'Generating screenshot for community post: {c["id"]}...')
                     images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
                     contents = c['item']['post_url']
-                    links = [c['item']['post_url']]
                 else:
                     if c['item']['attachments'][0]['type'] == 'video':
                         contents = c['item']['post_text']
@@ -280,21 +284,20 @@ while True:
                             contents = contents[0 : 300 - len(POST_SUFFIX) - 1 - 3] + '...'
                         contents += POST_SUFFIX
 
-                        # link value, link text
-                        links = [(c['item']['post_url'], POST_SUFFIX.strip('(').strip(')'))]
+                        # link text, link url
+                        manual_links = [('View Post', c['item']['post_url'])]
 
                     else:
                         print(f'Generating screenshot for community post: {c["id"]}...')
                         images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
                         contents = c['item']['post_url']
-                        links = [c['item']['post_url']]
 
             if c['type'] in ('video', 'short'):
                 embed_title, embed_description, embed_image_url = get_youtube_embed_details(link_embed)
 
             # post
             print(
-                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Links-[{links}], Title-[{embed_title}, Description-[{embed_description}], Image-[{embed_image_url}]'
+                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Title-[{embed_title}, Description-[{embed_description}], Manual Links-[{manual_links}], Image-[{embed_image_url}]'
             )
             if not DO_NOT_POST:
                 print(f'Posting update {c["id"]}...')
@@ -302,10 +305,10 @@ while True:
                     contents=contents,
                     link_embed=link_embed,
                     images=images,
-                    links=links,
                     embed_title=embed_title,
                     embed_description=embed_description,
                     embed_image_link=embed_image_url,
+                    manual_links=manual_links
                 )
 
             add_key_to_cache(registry, c['id'])

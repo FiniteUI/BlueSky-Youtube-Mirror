@@ -53,14 +53,14 @@ test = ["dateparser (==1.*)", "pre-commit", "pytest", "pytest-cov", "pytest-mock
 
 [[package]]
 name = "atproto"
-version = "0.0.72"
+version = "0.0.73"
 description = "The AT Protocol SDK"
 optional = false
 python-versions = "<3.15,>=3.9"
 groups = ["main"]
 files = [
-    {file = "atproto-0.0.72-py3-none-any.whl", hash = "sha256:239ca1c54cb4c878f625581b44abd1f0018b7b55419f7ca886468641ecb7fb09"},
-    {file = "atproto-0.0.72.tar.gz", hash = "sha256:eec904188b0beba165a7cc14ccc6a190b3ce061fecac4db3b9166e2500b02a41"},
+    {file = "atproto-0.0.73-py3-none-any.whl", hash = "sha256:772dbef364788385724b1724434a42c56b9aeeec0e480c70f6b7edd7f65f1e77"},
+    {file = "atproto-0.0.73.tar.gz", hash = "sha256:0dc0e7f60ce99113b3371528d368e47566b44344812c7b0047229eda8b07eb13"},
 ]
 
 [package.dependencies]
@@ -70,6 +70,7 @@ dnspython = ">=2.4.0,<3"
 httpx = ">=0.25.0,<0.29.0"
 libipld = ">=3.0.1,<4"
 pydantic = ">=2.7,<3"
+tlds = ">=2026093003"
 typing-extensions = ">=4.8.0,<5"
 websockets = ">=15,<18"
 zstandard = ">=0.24.0,<0.26.0"
@@ -515,6 +516,22 @@ doq = ["aioquic (>=1.2.0)"]
 idna = ["idna (>=3.10)"]
 trio = ["trio (>=0.30)"]
 wmi = ["wmi (>=1.5.1) ; platform_system == \"Windows\""]
+
+[[package]]
+name = "favicon"
+version = "0.7.0"
+description = "Get a website's favicon."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "favicon-0.7.0-py2.py3-none-any.whl", hash = "sha256:7fec0617c73dcb8521ea788e1d38cdc7226c7cb8e28c81e11625d85fa1534880"},
+    {file = "favicon-0.7.0.tar.gz", hash = "sha256:6d6b5a78de2a0d0084589f687f384b2ecd6a6527093fec564403b1a30605d7a8"},
+]
+
+[package.dependencies]
+beautifulsoup4 = ">=4.7.0"
+requests = ">=2.21.0"
 
 [[package]]
 name = "greenlet"
@@ -1394,6 +1411,18 @@ files = [
 ]
 
 [[package]]
+name = "tlds"
+version = "2026102900"
+description = "Automatically updated list of valid TLDs taken directly from IANA"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "tlds-2026102900-py2.py3-none-any.whl", hash = "sha256:3413bd6b7067f5e25392a32575030b0796cbac4dba6ceef5b13f3c8745b05cb8"},
+    {file = "tlds-2026102900.tar.gz", hash = "sha256:296525821ee8fa076a908c0024a23de79fb60147e302869c76226fe315a50842"},
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.16.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -1739,4 +1768,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.14,<3.15"
-content-hash = "668521691d29825b8a93d7c3f0c24a94a15227479801dfd4d34cc86e81aa0423"
+content-hash = "b6f0a009a6572ed0db3c72c13a9beaeef70cadddf2ab6902e2d507200c109812"

@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "atproto (>=0.0.72,<0.0.73)",
+    "atproto (==0.0.73)",
     "playwright (>=1.63.0,<2.0.0)",
     "python-dotenv (>=1.2.3,<2.0.0)",
     "python-youtube (>=0.9.9,<0.10.0)",
@@ -17,7 +17,8 @@ dependencies = [
     "arrow (>=1.4.0,<2.0.0)",
     "pillow (>=12.3.0,<13.0.0)",
     "requests (>=2.34.2,<3.0.0)",
-    "numpy (>=2.5.3,<3.0.0)"
+    "numpy (>=2.5.3,<3.0.0)",
+    "favicon (>=0.7.0,<0.8.0)"
 ]
 
 [dependency-groups]
