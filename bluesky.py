@@ -234,19 +234,6 @@ class BlueSky:
 
         return embed
 
-    def compress_embed_thumbnail(thumbnail: bytes):
-        if len(thumbnail) <= MAX_THUMBNAIL_SIZE:
-            return thumbnail
-
-        quality = MAX_THUMBNAIL_SIZE / len(thumbnail)
-        quality = round(quality * 95, 0)
-        print(f'Compressing image to {quality}% quality...')
-
-        image = Image.open(BytesIO(thumbnail))
-        image = image.save(image, quality)
-
-        return image.getvalue()
-
     def upload_blob_oauth(self, data, content_type='image/jpeg'):
         # manually upload blob since python sdk doesn't support oauth yet
         url = f'{self.active_oauth_session.pds_url.rstrip("/")}/xrpc/com.atproto.repo.uploadBlob'
@@ -265,10 +252,6 @@ class BlueSky:
         response.raise_for_status()
 
         return response.json()['blob']
-
-    def generate_post_embed(uri, cid):
-        embed = models.AppBskyEmbedRecord.Main(record=models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri))
-        return embed
 
     def send_message(
         self,
@@ -348,17 +331,6 @@ class BlueSky:
         url = BlueSky.build_post_url(handle, key)
 
         return url
-
-    def build_post_url(author, key):
-        return f'https://bsky.app/profile/{author}/post/{key}'
-
-    def get_post_uri_details(uri):
-        # get post key and user from uri
-        uri_split = uri.split('/')
-        did = uri_split[2]
-        key = uri_split[4]
-
-        return did, key
 
     def get_post_uri_from_url(self, url):
         url_split = url.split('/')
@@ -475,6 +447,9 @@ class BlueSky:
 
         return icon_blob
 
+    def pin_post(self, uri):
+            return self.update_profile(pinned_post_uri=uri)
+
     @staticmethod
     def convert_icon_to_png(bytes):
         image = Image.open(BytesIO(bytes))
@@ -484,8 +459,37 @@ class BlueSky:
 
         return output.getvalue()
 
-    def pin_post(self, uri):
-        return self.update_profile(pinned_post_uri=uri)
+    @staticmethod
+    def compress_embed_thumbnail(thumbnail: bytes):
+        if len(thumbnail) <= MAX_THUMBNAIL_SIZE:
+            return thumbnail
+
+        quality = MAX_THUMBNAIL_SIZE / len(thumbnail)
+        quality = round(quality * 95, 0)
+        print(f'Compressing image to {quality}% quality...')
+
+        image = Image.open(BytesIO(thumbnail))
+        image = image.save(image, quality)
+
+        return image.getvalue()
+
+    @staticmethod
+    def build_post_url(author, key):
+            return f'https://bsky.app/profile/{author}/post/{key}'
+
+    @staticmethod
+    def get_post_uri_details(uri):
+        # get post key and user from uri
+        uri_split = uri.split('/')
+        did = uri_split[2]
+        key = uri_split[4]
+
+        return did, key
+
+    @staticmethod
+    def generate_post_embed(uri, cid):
+        embed = models.AppBskyEmbedRecord.Main(record=models.ComAtprotoRepoStrongRef.Main(cid=cid, uri=uri))
+        return embed
 
 
 if __name__ == '__main__':
