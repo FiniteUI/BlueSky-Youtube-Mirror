@@ -31,6 +31,8 @@ exclude = [
 # Same as Black.
 indent-width = 4
 
+line-length = 160
+
 target-version = "py314"
 
 [lint]
@@ -416,7 +418,7 @@ select = [
     "TRY401",
 ]
 ignore = ["E501", "SIM102", "BLE001", "E741"]
-extend-safe-fixes = ["SIM118", "RUF013"]
+extend-safe-fixes = ["SIM118", "RUF013", "SIM210", "SIM103"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
