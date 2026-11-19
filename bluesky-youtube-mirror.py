@@ -41,6 +41,17 @@ def get_channel_details(youtube_api, channel_id):
     return channel_details
 
 
+def get_channel_live(youtube_api, channel_id):
+    live_url = None
+
+    activities = youtube_api.search(channel_id=channel_id, search_type='video', event_type='live')
+    if len(activities.items) > 0:
+        live_video_id = activities.items[0].id.videoId
+        live_url = f'https://www.youtube.com/watch?v={live_video_id}'
+
+    return live_url
+
+
 def update_profile(bluesky_client, channel_details):
     # grab images
     print(f'Downloading profile picture from url [{channel_details["profile_picture"]}]...')
@@ -143,6 +154,10 @@ DO_NOT_UPDATE_PROFILE = False
 if str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == 'true' or str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == '1':
     DO_NOT_UPDATE_PROFILE = True
 
+DO_NOT_USE_SESSION = False
+if str(os.getenv('DO_NOT_USE_SESSION')).lower() == 'true' or str(os.getenv('DO_NOT_USE_SESSION')).lower() == '1':
+    DO_NOT_USE_SESSION = True
+
 SCREENSHOT_TIMEOUT = os.getenv('SCREENSHOT_TIMEOUT')
 if SCREENSHOT_TIMEOUT:
     SCREENSHOT_TIMEOUT = int(SCREENSHOT_TIMEOUT)
@@ -155,13 +170,21 @@ registry = RegistryFile()
 youtube_api = Api(api_key=YOUTUBE_API_KEY)
 
 # login to Bluesky
+logged_in = False
 session = registry.getValue('bluesky_session_string', None)
-bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session)
+if not DO_NOT_USE_SESSION and session is not None:
+    bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session)
 
-print('Logging into BlueSky...')
-bsky.login()
-if not bsky.logged_in:
-    print('Failed to log in to BlueSky. Trying again without session...')
+    print('Logging into BlueSky with session...')
+    bsky.login()
+
+    if not bsky.logged_in:
+        print('Failed to log in to BlueSky. Trying again without session...')
+    else:
+        logged_in = True
+
+if not logged_in:
+    print('Logging into BlueSky with app password...')
     bsky = BlueSky(BLUESKY_ACCOUNT, BLUESKY_APP_PASSWORD, session=None)
     bsky.login()
 
@@ -189,6 +212,7 @@ if not initialized:
     registry.setValue('initialized', True)
 
 # now run update process
+last_live_url = None
 while True:
     print('Processing...')
 
@@ -221,6 +245,20 @@ while True:
         if not DO_NOT_UPDATE_PROFILE:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
+
+    #update live status
+    print('Checking live status...')
+    live_url = get_channel_live(youtube_api, CHANNEL_ID)
+    if live_url is not None:
+        if last_live_url is None:
+            #update status to live
+            print('Starting live status...')
+            bsky.go_live(live_link=live_url, duration_minutes=60)
+    else:
+        if last_live_url is not None:
+            print('Ending live status...')
+            bsky.end_live()
+    last_live_url = live_url
 
     raw_channel_updates = []
     print('Loading channel videos...')
@@ -318,6 +356,3 @@ while True:
 
     print(f'Processing complete. Waiting for {PROCESS_INTERVAL} seconds...')
     time.sleep(PROCESS_INTERVAL)
-
-# repo link
-# alt text
