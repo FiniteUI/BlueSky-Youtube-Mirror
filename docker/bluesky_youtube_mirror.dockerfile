@@ -16,4 +16,4 @@ RUN poetry run playwright install chromium && \
 
 COPY *.py .
 
-CMD ["python", "-u", "bluesky-youtube-mirror.py"]
+CMD ["poetry", "run", "python", "-u", "bluesky-youtube-mirror.py"]
