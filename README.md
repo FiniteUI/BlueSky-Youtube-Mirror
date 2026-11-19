@@ -1,7 +1,12 @@
 # BlueSky YouTube Mirror
 [![Docker Hub](https://img.shields.io/static/v1.svg?color=086dd7&labelColor=555555&logoColor=ffffff&label=&message=docker%20hub&logo=Docker)](https://hub.docker.com/repository/docker/finiteui/bluesky-youtube-mirror)
 
-This is a tool for mirroring a YouTube channel to a BlueSky account. Once deployed, the tool will update the BlueSky profile picture, banner, display name, and description to match the YouTube channel. It will also make posts when any videos, shorts, or community posts are made by the YouTube channel.
+This is a tool for mirroring a YouTube channel to a BlueSky account. Once deployed, the tool will perform the following tasks:
+- Update the BlueSky profile picture, banner, display name, and description to match the YouTube channel
+- Add a BlueSky profile link to the channel
+- Generate a pinned post with a disclaimer and link to the channel
+- Post when any videos, shorts, or community posts are made by the YouTube channel.
+- Update the BlueSky profile's live status when the YouTube channel starts/stops streaming.
 
 > [!CAUTION]
 > This project should NOT be used for impersonating YouTube channels. During initialization, it will create a pinned post giving credit to the original YouTube channel.
