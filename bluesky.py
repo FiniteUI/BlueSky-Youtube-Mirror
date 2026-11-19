@@ -89,7 +89,7 @@ class BlueSky:
         embed_title=None,
         embed_description=None,
         embed_image_link=None,
-        manual_links: list[tuple] | None = None
+        manual_links: list[tuple] | None = None,
     ):
         uri = None
 
@@ -457,18 +457,15 @@ class BlueSky:
         return icon_blob
 
     def pin_post(self, uri):
-            return self.update_profile(pinned_post_uri=uri)
+        return self.update_profile(pinned_post_uri=uri)
 
     def go_live(self, live_link, duration_minutes):
         # generate embed
         embed = self.get_link_embed_details(live_link)
 
-        #generate live status record
+        # generate live status record
         live_status = models.AppBskyActorStatus.Record(
-            status='app.bsky.actor.status#live',
-            created_at=datetime.now(UTC).isoformat(),
-            duration_minutes=duration_minutes,
-            embed=embed
+            status='app.bsky.actor.status#live', created_at=datetime.now(UTC).isoformat(), duration_minutes=duration_minutes, embed=embed
         )
 
         # upload record
@@ -516,7 +513,7 @@ class BlueSky:
 
     @staticmethod
     def build_post_url(author, key):
-            return f'https://bsky.app/profile/{author}/post/{key}'
+        return f'https://bsky.app/profile/{author}/post/{key}'
 
     @staticmethod
     def get_post_uri_details(uri):
@@ -541,10 +538,11 @@ class BlueSky:
         start = full_text_encoded.find(link_text_encoded)
         if start != -1:
             link = models.AppBskyRichtextFacet.Link(uri=link_url)
-            position = models.AppBskyRichtextFacet.ByteSlice(byte_start = start, byte_end = start + len(link_text_encoded))
+            position = models.AppBskyRichtextFacet.ByteSlice(byte_start=start, byte_end=start + len(link_text_encoded))
             facet = models.AppBskyRichtextFacet.Main(features=[link], index=position)
 
         return facet
+
 
 if __name__ == '__main__':
     print('This module should not be run directly.')

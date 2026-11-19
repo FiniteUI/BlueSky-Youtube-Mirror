@@ -32,9 +32,9 @@ def get_youtube_community_posts(handle, cutoff=None):
                 break
 
         if posts_index is not None:
-            post_data = page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][posts_index]['tabRenderer']['content']['sectionListRenderer']['contents'][0][
-                'itemSectionRenderer'
-            ]['contents']
+            post_data = page_data['contents']['twoColumnBrowseResultsRenderer']['tabs'][posts_index]['tabRenderer']['content']['sectionListRenderer'][
+                'contents'
+            ][0]['itemSectionRenderer']['contents']
 
             for p in post_data:
                 if 'backstagePostThreadRenderer' in p:

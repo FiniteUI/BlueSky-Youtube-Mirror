@@ -71,7 +71,7 @@ def update_profile(bluesky_client, channel_details):
     print(f'Generated description: {description}')
 
     print('Updating BlueSky profile...')
-    bluesky_client.update_profile(channel_name, description, avatar, banner, links = [(channel_details['url'], channel_details['name'])])
+    bluesky_client.update_profile(channel_name, description, avatar, banner, links=[(channel_details['url'], channel_details['name'])])
 
 
 def generate_pinned_post(bluesky_client, channel_url, channel_name):
@@ -246,12 +246,12 @@ while True:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
-    #update live status
+    # update live status
     print('Checking live status...')
     live_url = get_channel_live(youtube_api, CHANNEL_ID)
     if live_url is not None:
         if last_live_url is None:
-            #update status to live
+            # update status to live
             print('Starting live status...')
             bsky.go_live(live_link=live_url, duration_minutes=60)
     else:
@@ -346,7 +346,7 @@ while True:
                     embed_title=embed_title,
                     embed_description=embed_description,
                     embed_image_link=embed_image_url,
-                    manual_links=manual_links
+                    manual_links=manual_links,
                 )
 
             add_key_to_cache(registry, c['id'])
