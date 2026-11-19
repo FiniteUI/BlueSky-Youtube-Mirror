@@ -459,6 +459,38 @@ class BlueSky:
     def pin_post(self, uri):
             return self.update_profile(pinned_post_uri=uri)
 
+    def go_live(self, live_link, duration_minutes):
+        # generate embed
+        embed = self.get_link_embed_details(live_link)
+
+        #generate live status record
+        live_status = models.AppBskyActorStatus.Record(
+            status='app.bsky.actor.status#live',
+            created_at=datetime.now(UTC).isoformat(),
+            duration_minutes=duration_minutes,
+            embed=embed
+        )
+
+        # upload record
+        self.client.com.atproto.repo.put_record(
+            models.ComAtprotoRepoPutRecord.Data(
+                repo=self.did,
+                collection='app.bsky.actor.status',
+                rkey='self',
+                record=live_status,
+            )
+        )
+
+    def end_live(self):
+        # delete status record
+        self.client.com.atproto.repo.delete_record(
+            models.ComAtprotoRepoDeleteRecord.Data(
+                repo=self.did,
+                collection='app.bsky.actor.status',
+                rkey='self',
+            )
+        )
+
     @staticmethod
     def convert_icon_to_png(bytes):
         image = Image.open(BytesIO(bytes))
