@@ -47,7 +47,7 @@ class BlueSky:
         except (
             exceptions.UnauthorizedError,
             exceptions.BadRequestError,
-            exceptions.TimeoutError,
+            exceptions.InvokeTimeoutError,
             ValueError,
         ) as e:
             self.error = 'Failed to authorize with BlueSky: ' + str(e)
