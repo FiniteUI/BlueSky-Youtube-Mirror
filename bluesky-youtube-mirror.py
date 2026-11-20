@@ -24,6 +24,8 @@ DO_NOT_POST = False
 KEY_CACHE_COUNT = 50
 BLUESKY_POST_LENGTH = 300
 POST_SUFFIX = '(View Post)'
+LIVE_CHECK_INTERVAL = 900
+LAST_LIVE_URL = None
 
 
 def get_channel_details(youtube_api, channel_id):
@@ -109,6 +111,38 @@ def check_if_key_in_cache(registry: RegistryFile, key: str):
 
     key_cache = key_cache.split(';')
     return key in key_cache
+
+
+def run_live_check(youtube_api, bluesky_client):
+    global LAST_LIVE_URL
+
+    # check if enough time has passed
+    # youtube api has a search query quota of 100 / day
+    # so we only check this every 15 minutes
+    last_live_check = registry.getValue('last_live_check', None)
+    if last_live_check is None:
+        last_live_check = datetime.now(UTC)
+        registry.setValue('last_live_check', datetime.now(UTC))
+    else:
+        last_live_check = datetime.fromisoformat(last_live_check)
+
+    if datetime.now(UTC) - last_live_check < timedelta(seconds=LIVE_CHECK_INTERVAL):
+        return
+
+    # update live status
+    print('Checking live status...')
+    live_url = get_channel_live(youtube_api, CHANNEL_ID)
+    if live_url is not None:
+        if LAST_LIVE_URL is None:
+            # update status to live
+            print('Starting live status...')
+            bluesky_client.go_live(live_link=live_url, duration_minutes=60)
+    else:
+        if LAST_LIVE_URL is not None:
+            print('Ending live status...')
+            bluesky_client.end_live()
+    
+    LAST_LIVE_URL = live_url
 
 
 print('Process initializing...')
@@ -246,19 +280,8 @@ while True:
             update_profile(bsky, channel_details)
         registry.setValue('last_profile_update', datetime.now(UTC))
 
-    # update live status
-    print('Checking live status...')
-    live_url = get_channel_live(youtube_api, CHANNEL_ID)
-    if live_url is not None:
-        if last_live_url is None:
-            # update status to live
-            print('Starting live status...')
-            bsky.go_live(live_link=live_url, duration_minutes=60)
-    else:
-        if last_live_url is not None:
-            print('Ending live status...')
-            bsky.end_live()
-    last_live_url = live_url
+    # check live status
+    run_live_check(youtube_api, bsky)
 
     raw_channel_updates = []
     print('Loading channel videos...')
