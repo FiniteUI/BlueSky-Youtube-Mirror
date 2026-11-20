@@ -58,6 +58,12 @@ pip install poetry
 poetry install --no-root --only main
 ```
 
+Install the additional playwright components:
+```powershell
+poetry run playwright install chromium && \
+poetry run playwright install-deps chromium
+```
+
 Then run the project:
 ```powershell
 poetry run python bluesky-youtube-mirror.py
