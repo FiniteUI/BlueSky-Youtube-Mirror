@@ -131,7 +131,14 @@ def run_live_check(youtube_api, bluesky_client):
 
     # update live status
     print('Checking live status...')
-    live_url = get_channel_live(youtube_api, CHANNEL_ID)
+
+    try:
+        live_url = get_channel_live(youtube_api, CHANNEL_ID)
+    except Exception as e:
+        print('Failed to run YouTube search:')
+        print(e)
+        return
+
     if live_url is not None:
         if LAST_LIVE_URL is None:
             # update status to live
