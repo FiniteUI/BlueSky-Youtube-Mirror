@@ -148,7 +148,7 @@ def run_live_check(youtube_api, bluesky_client):
         if LAST_LIVE_URL is not None:
             print('Ending live status...')
             bluesky_client.end_live()
-    
+
     LAST_LIVE_URL = live_url
 
 
