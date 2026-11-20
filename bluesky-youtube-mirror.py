@@ -253,7 +253,6 @@ if not initialized:
     registry.setValue('initialized', True)
 
 # now run update process
-last_live_url = None
 while True:
     print('Processing...')
 
