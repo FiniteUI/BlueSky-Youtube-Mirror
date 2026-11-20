@@ -152,6 +152,120 @@ def run_live_check(youtube_api, bluesky_client):
     LAST_LIVE_URL = live_url
 
 
+def run_profile_update(bluesky_client, channel_details):
+    # update profile
+    last_profile_update = registry.getValue('last_profile_update', None)
+    if last_profile_update is None:
+        last_profile_update = datetime.now(UTC)
+        registry.setValue('last_profile_update', datetime.now(UTC))
+    else:
+        last_profile_update = datetime.fromisoformat(last_profile_update)
+    if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
+        if not DO_NOT_UPDATE_PROFILE:
+            update_profile(bluesky_client, channel_details)
+        registry.setValue('last_profile_update', datetime.now(UTC))
+
+
+def get_channel_updates(channel_details, last_process):
+    # return a list of posts, videos, and shorts since the last_process
+
+    raw_channel_updates = []
+    print('Loading channel videos...')
+    channel_videos = get_all_channel_videos(channel_details['handle'], cutoff=last_process)
+    print(f'{len(channel_videos)} channel videos loaded...')
+    raw_channel_updates.extend(channel_videos)
+
+    print('Loading channel community posts...')
+    posts = get_youtube_community_posts(channel_details['handle'], cutoff=last_process)
+    print(f'{len(posts)} channel community posts loaded...')
+    raw_channel_updates.extend(posts)
+
+    del channel_videos
+    del posts
+
+    # make sure items are newer than the last process time
+    # also check if they're in the id cache, as the timestamps are not always consistent and exact
+    channel_updates = []
+    for u in raw_channel_updates:
+        if not u['timestamp'] or u['timestamp'] > last_process:
+            if IGNORE_CACHE or not check_if_key_in_cache(registry, u['id']):
+                channel_updates.append({'timestamp': u['timestamp'], 'type': u['type'], 'item': u, 'id': u['id']})
+            else:
+                print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
+        else:
+            print(f'Update {u["id"]} ({u["type"]} - {u["timestamp"]}) is before last process timestamp ({last_process}). Skipping...')
+
+    channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
+
+    return channel_updates
+
+
+def run_post_check(channel_details, last_process, bluesky_client):
+    channel_updates = get_channel_updates(channel_details, last_process)
+    print(f'{len(channel_updates)} channel updates found to post...')
+    if channel_updates:
+        for c in channel_updates:
+            print(f'Generating post for update [{c}]...')
+
+            contents = ''
+            images = None
+            link_embed = None
+            manual_links = None
+
+            embed_title = None
+            embed_description = None
+            embed_image_url = None
+
+            if c['type'] == 'video':
+                link_embed = f'https://www.youtube.com/watch?v={c["item"]["id"]}'
+            elif c['type'] == 'short':
+                link_embed = f'https://www.youtube.com/shorts/{c["item"]["id"]}'
+            else:
+                if c['item']['attachments'] is None:
+                    print(f'Generating screenshot for community post: {c["id"]}...')
+                    images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
+                    contents = c['item']['post_url']
+                else:
+                    if c['item']['attachments'][0]['type'] == 'video':
+                        contents = c['item']['post_text']
+                        link_embed = c['attachments'][0]['url']
+
+                        # also link to post
+                        # shorten the text if need be
+                        if len(contents) + 1 + len(POST_SUFFIX) > BLUESKY_POST_LENGTH:
+                            contents = contents[0 : 300 - len(POST_SUFFIX) - 1 - 3] + '...'
+                        contents += POST_SUFFIX
+
+                        # link text, link url
+                        manual_links = [('View Post', c['item']['post_url'])]
+
+                    else:
+                        print(f'Generating screenshot for community post: {c["id"]}...')
+                        images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
+                        contents = c['item']['post_url']
+
+            if c['type'] in ('video', 'short'):
+                embed_title, embed_description, embed_image_url = get_youtube_embed_details(link_embed)
+
+            # post
+            print(
+                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Title-[{embed_title}, Description-[{embed_description}], Manual Links-[{manual_links}], Image-[{embed_image_url}]'
+            )
+            if not DO_NOT_POST:
+                print(f'Posting update {c["id"]}...')
+                bluesky_client.post(
+                    contents=contents,
+                    link_embed=link_embed,
+                    images=images,
+                    embed_title=embed_title,
+                    embed_description=embed_description,
+                    embed_image_link=embed_image_url,
+                    manual_links=manual_links,
+                )
+
+            add_key_to_cache(registry, c['id'])
+
+
 print('Process initializing...')
 
 # load configuration
@@ -198,6 +312,10 @@ if str(os.getenv('DO_NOT_UPDATE_PROFILE')).lower() == 'true' or str(os.getenv('D
 DO_NOT_USE_SESSION = False
 if str(os.getenv('DO_NOT_USE_SESSION')).lower() == 'true' or str(os.getenv('DO_NOT_USE_SESSION')).lower() == '1':
     DO_NOT_USE_SESSION = True
+
+IGNORE_CACHE = False
+if str(os.getenv('IGNORE_CACHE')).lower() == 'true' or str(os.getenv('IGNORE_CACHE')).lower() == '1':
+    IGNORE_CACHE = True
 
 SCREENSHOT_TIMEOUT = os.getenv('SCREENSHOT_TIMEOUT')
 if SCREENSHOT_TIMEOUT:
@@ -275,110 +393,13 @@ while True:
     print(channel_details)
 
     # update profile
-    last_profile_update = registry.getValue('last_profile_update', None)
-    if last_profile_update is None:
-        last_profile_update = datetime.now(UTC)
-        registry.setValue('last_profile_update', datetime.now(UTC))
-    else:
-        last_profile_update = datetime.fromisoformat(last_profile_update)
-    if datetime.now(UTC) - last_profile_update > timedelta(seconds=PROFILE_UPDATE_INTERVAL):
-        if not DO_NOT_UPDATE_PROFILE:
-            update_profile(bsky, channel_details)
-        registry.setValue('last_profile_update', datetime.now(UTC))
+    run_profile_update(bsky, channel_details)
 
     # check live status
     run_live_check(youtube_api, bsky)
 
-    raw_channel_updates = []
-    print('Loading channel videos...')
-    channel_videos = get_all_channel_videos(channel_details['handle'], cutoff=last_process)
-    print(f'{len(channel_videos)} channel videos loaded...')
-    raw_channel_updates.extend(channel_videos)
-
-    print('Loading channel community posts...')
-    posts = get_youtube_community_posts(channel_details['handle'], cutoff=last_process)
-    print(f'{len(posts)} channel community posts loaded...')
-    raw_channel_updates.extend(posts)
-
-    del channel_videos
-    del posts
-
-    # make sure items are newer than the last process time
-    # also check if they're in the id cache, as the timestamps are not always consistent and exact
-    channel_updates = []
-    for u in raw_channel_updates:
-        if not u['timestamp'] or u['timestamp'] > last_process:
-            if bool(os.getenv('IGNORE_CACHE', 'False')) or not check_if_key_in_cache(registry, u['id']):
-                channel_updates.append({'timestamp': u['timestamp'], 'type': u['type'], 'item': u, 'id': u['id']})
-            else:
-                print(f'Update {u["id"]} ({u["type"]}) already exists in key cache. Skipping...')
-        else:
-            print(f'Update {u["id"]} ({u["type"]} - {u["timestamp"]}) is before last process timestamp ({last_process}). Skipping...')
-
-    channel_updates = sorted(channel_updates, key=lambda d: d['timestamp'])
-
-    print(f'{len(channel_updates)} channel updates found to post...')
-    if channel_updates:
-        for c in channel_updates:
-            print(f'Generating post for update [{c}]...')
-
-            contents = ''
-            images = None
-            link_embed = None
-            manual_links = None
-
-            embed_title = None
-            embed_description = None
-            embed_image_url = None
-
-            if c['type'] == 'video':
-                link_embed = f'https://www.youtube.com/watch?v={c["item"]["id"]}'
-            elif c['type'] == 'short':
-                link_embed = f'https://www.youtube.com/shorts/{c["item"]["id"]}'
-            else:
-                if c['item']['attachments'] is None:
-                    print(f'Generating screenshot for community post: {c["id"]}...')
-                    images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
-                    contents = c['item']['post_url']
-                else:
-                    if c['item']['attachments'][0]['type'] == 'video':
-                        contents = c['item']['post_text']
-                        link_embed = c['attachments'][0]['url']
-
-                        # also link to post
-                        # shorten the text if need be
-                        if len(contents) + 1 + len(POST_SUFFIX) > BLUESKY_POST_LENGTH:
-                            contents = contents[0 : 300 - len(POST_SUFFIX) - 1 - 3] + '...'
-                        contents += POST_SUFFIX
-
-                        # link text, link url
-                        manual_links = [('View Post', c['item']['post_url'])]
-
-                    else:
-                        print(f'Generating screenshot for community post: {c["id"]}...')
-                        images = [get_community_post_screenshot(c['item']['post_url'], timeout=SCREENSHOT_TIMEOUT)]
-                        contents = c['item']['post_url']
-
-            if c['type'] in ('video', 'short'):
-                embed_title, embed_description, embed_image_url = get_youtube_embed_details(link_embed)
-
-            # post
-            print(
-                f'Data for post {c["id"]}: Content-[{contents}], Embed-[{link_embed}], Title-[{embed_title}, Description-[{embed_description}], Manual Links-[{manual_links}], Image-[{embed_image_url}]'
-            )
-            if not DO_NOT_POST:
-                print(f'Posting update {c["id"]}...')
-                bsky.post(
-                    contents=contents,
-                    link_embed=link_embed,
-                    images=images,
-                    embed_title=embed_title,
-                    embed_description=embed_description,
-                    embed_image_link=embed_image_url,
-                    manual_links=manual_links,
-                )
-
-            add_key_to_cache(registry, c['id'])
+    # check for new posts
+    run_post_check(channel_details, last_process, bsky)
 
     # update session string
     registry.setValue('bluesky_session_string', bsky.session)
